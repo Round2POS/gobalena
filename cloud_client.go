@@ -67,7 +67,7 @@ func (b *CloudClient) GetDeviceEnvVarID(
 ) (int, error) {
 	response, err := b.httpClient.R().
 		SetContext(ctx).
-		SetResult(Response[EnvVar]{}).
+		SetResult(Response[DeviceEnvVar]{}).
 		Get("/v6/device_environment_variable?\\$filter=device%20eq%20" + strconv.Itoa(balenaDeviceID))
 	if err != nil {
 		return 0, fmt.Errorf("failed performing request to get device(%d) env var(%s): %w", balenaDeviceID, key, err)
@@ -77,7 +77,7 @@ func (b *CloudClient) GetDeviceEnvVarID(
 		return 0, fmt.Errorf("error setting device(%d) env var(%s): %s", balenaDeviceID, key, response.Body())
 	}
 
-	balenaResult := response.Result().(*Response[EnvVar])
+	balenaResult := response.Result().(*Response[DeviceEnvVar])
 	for _, envVar := range balenaResult.D {
 		if envVar.Name == key {
 			return envVar.ID, nil
@@ -111,14 +111,14 @@ func (b *CloudClient) UpdateDeviceEnvVar(
 func (b *CloudClient) GetDeviceDetails(
 	ctx context.Context,
 	balenaDeviceUUID string,
-) (*BalenaDevice, error) {
+) (*Device, error) {
 	if !IsValidBalenaDeviceUUID(balenaDeviceUUID) {
 		return nil, ErrInvalidBalenaDeviceUUID
 	}
 
 	response, err := b.httpClient.R().
 		SetContext(ctx).
-		SetResult(BalenaResponse[BalenaDevice]{}).
+		SetResult(Response[Device]{}).
 		Get("/v6/device(uuid='" + balenaDeviceUUID + "')?" + DeviceDetailsQuerySelector + "&" + DeviceQuerySelector)
 	if err != nil {
 		return nil, fmt.Errorf("failed performing request to get device(%s) details: %w", balenaDeviceUUID, err)
@@ -128,7 +128,7 @@ func (b *CloudClient) GetDeviceDetails(
 		return nil, fmt.Errorf("error getting device(%s) details: %s", balenaDeviceUUID, response.Body())
 	}
 
-	balenaResult := response.Result().(*BalenaResponse[BalenaDevice])
+	balenaResult := response.Result().(*Response[Device])
 	if len(balenaResult.D) == 0 {
 		return nil, ErrResourceNotFound
 	}
@@ -143,7 +143,7 @@ func (b *CloudClient) GetDeviceDetails(
 func (b *CloudClient) GetDevicesDetails(
 	ctx context.Context,
 	balenaDeviceUUIDs []string,
-) ([]BalenaDevice, error) {
+) ([]Device, error) {
 	filter := ""
 	for i, uuid := range balenaDeviceUUIDs {
 		if !IsValidBalenaDeviceUUID(uuid) {
@@ -158,7 +158,7 @@ func (b *CloudClient) GetDevicesDetails(
 
 	response, err := b.httpClient.R().
 		SetContext(ctx).
-		SetResult(BalenaResponse[BalenaDevice]{}).
+		SetResult(Response[Device]{}).
 		Get("/v6/device?$filter=uuid in(" + filter + ")&" + DeviceDetailsQuerySelector + "&" + DeviceQuerySelector)
 	if err != nil {
 		return nil, fmt.Errorf("failed performing request to get devices(%s) details: %w", balenaDeviceUUIDs, err)
@@ -168,7 +168,7 @@ func (b *CloudClient) GetDevicesDetails(
 		return nil, fmt.Errorf("error getting devices(%s) details: %s", balenaDeviceUUIDs, response.Body())
 	}
 
-	balenaResult := response.Result().(*BalenaResponse[BalenaDevice])
+	balenaResult := response.Result().(*Response[Device])
 	if len(balenaResult.D) == 0 {
 		return nil, ErrResourceNotFound
 	}
@@ -186,7 +186,7 @@ func (b *CloudClient) GetDeviceID(
 
 	response, err := b.httpClient.R().
 		SetContext(ctx).
-		SetResult(BalenaResponse[BalenaDeviceID]{}).
+		SetResult(Response[DeviceID]{}).
 		Get("/v6/device(uuid='" + balenaDeviceUUID + "')?$select=id")
 	if err != nil {
 		return 0, fmt.Errorf("failed performing request to get device(%s) ID: %w", balenaDeviceUUID, err)
@@ -196,7 +196,7 @@ func (b *CloudClient) GetDeviceID(
 		return 0, fmt.Errorf("error getting device(%s) ID: %s", balenaDeviceUUID, response.Body())
 	}
 
-	balenaResult := response.Result().(*BalenaResponse[BalenaDeviceID])
+	balenaResult := response.Result().(*Response[DeviceID])
 	if len(balenaResult.D) == 0 {
 		return 0, ErrResourceNotFound
 	}
@@ -208,10 +208,10 @@ func (b *CloudClient) GetDeviceID(
 	return balenaResult.D[0].ID, nil
 }
 
-func (b *CloudClient) GetFleet(ctx context.Context, name string) (*BalenaFleet, error) {
+func (b *CloudClient) GetFleet(ctx context.Context, name string) (*Fleet, error) {
 	response, err := b.httpClient.R().
 		SetContext(ctx).
-		SetResult(BalenaResponse[BalenaFleet]{}).
+		SetResult(Response[Fleet]{}).
 		Get("/v6/application?$filter=app_name%20eq%20'" + name + "'")
 	if err != nil {
 		return nil, fmt.Errorf("failed performing request to get fleet(%s): %w", name, err)
@@ -221,7 +221,7 @@ func (b *CloudClient) GetFleet(ctx context.Context, name string) (*BalenaFleet, 
 		return nil, fmt.Errorf("error getting fleet(%s): %s", name, response.Body())
 	}
 
-	balenaResult := response.Result().(*BalenaResponse[BalenaFleet])
+	balenaResult := response.Result().(*Response[Fleet])
 	if len(balenaResult.D) == 0 {
 		return nil, ErrResourceNotFound
 	}
@@ -290,7 +290,7 @@ func (b *CloudClient) DeleteDevice(
 func (b *CloudClient) GetDeviceEnvVars(
 	ctx context.Context,
 	balenaDeviceUUID string,
-) ([]BalenaDeviceEnvVar, error) {
+) ([]DeviceEnvVar, error) {
 	if !IsValidBalenaDeviceUUID(balenaDeviceUUID) {
 		return nil, ErrInvalidBalenaDeviceUUID
 	}
@@ -302,7 +302,7 @@ func (b *CloudClient) GetDeviceEnvVars(
 
 	response, err := b.httpClient.R().
 		SetContext(ctx).
-		SetResult(BalenaResponse[BalenaDeviceEnvVar]{}).
+		SetResult(Response[DeviceEnvVar]{}).
 		Get("/v6/device_environment_variable?$filter=device%20eq%20" + strconv.Itoa(id))
 	if err != nil {
 		return nil, fmt.Errorf("failed performing request for getting device(%s) env vars: %w", balenaDeviceUUID, err)
@@ -312,7 +312,7 @@ func (b *CloudClient) GetDeviceEnvVars(
 		return nil, fmt.Errorf("error getting device(%s) env vars: %s", balenaDeviceUUID, response.Body())
 	}
 
-	return response.Result().(*BalenaResponse[BalenaDeviceEnvVar]).D, nil
+	return response.Result().(*Response[DeviceEnvVar]).D, nil
 }
 
 func (b *CloudClient) CreateDeviceEnvVar(
@@ -349,7 +349,7 @@ func (b *CloudClient) CreateDeviceEnvVar(
 func (b *CloudClient) GetFleetEnvVars(
 	ctx context.Context,
 	name string,
-) ([]BalenaFleetEnvVar, error) {
+) ([]FleetEnvVar, error) {
 	if name == "" {
 		return nil, fmt.Errorf("fleet name is required")
 	}
@@ -361,7 +361,7 @@ func (b *CloudClient) GetFleetEnvVars(
 
 	response, err := b.httpClient.R().
 		SetContext(ctx).
-		SetResult(BalenaResponse[BalenaFleetEnvVar]{}).
+		SetResult(Response[FleetEnvVar]{}).
 		Get("/v6/application_environment_variable?$filter=application%20eq%20" + strconv.Itoa(fleet.ID))
 	if err != nil {
 		return nil, fmt.Errorf("failed performing request for getting fleet(%s) env vars: %w", name, err)
@@ -371,13 +371,13 @@ func (b *CloudClient) GetFleetEnvVars(
 		return nil, fmt.Errorf("error getting fleet(%s) env vars: %s", name, response.Body())
 	}
 
-	return response.Result().(*BalenaResponse[BalenaFleetEnvVar]).D, nil
+	return response.Result().(*Response[FleetEnvVar]).D, nil
 }
 
 func (b *CloudClient) GetServiceEnvVars(
 	ctx context.Context,
 	fleetName string,
-) ([]BalenaServiceEnvVar, error) {
+) ([]ServiceEnvVar, error) {
 	if fleetName == "" {
 		return nil, fmt.Errorf("fleet name is required")
 	}
@@ -389,7 +389,7 @@ func (b *CloudClient) GetServiceEnvVars(
 
 	response, err := b.httpClient.R().
 		SetContext(ctx).
-		SetResult(BalenaResponse[BalenaServiceEnvVar]{}).
+		SetResult(Response[ServiceEnvVar]{}).
 		Get("/v6/service_environment_variable?$filter=service/any(s:s/application%20eq%20" + strconv.Itoa(fleet.ID) + ")" + "&$select=id,name,value&$expand=service($select=id,service_name)")
 	if err != nil {
 		return nil, fmt.Errorf("failed performing request for getting service fleet(%s) env vars: %w", fleetName, err)
@@ -399,13 +399,13 @@ func (b *CloudClient) GetServiceEnvVars(
 		return nil, fmt.Errorf("error getting service fleet(%s) env vars: %s", fleetName, response.Body())
 	}
 
-	return response.Result().(*BalenaResponse[BalenaServiceEnvVar]).D, nil
+	return response.Result().(*Response[ServiceEnvVar]).D, nil
 }
 
 func (b *CloudClient) GetDeviceServiceEnvVars(
 	ctx context.Context,
 	balenaDeviceUUID string,
-) ([]BalenaDeviceServiceEnvVar, error) {
+) ([]DeviceServiceEnvVar, error) {
 	if !IsValidBalenaDeviceUUID(balenaDeviceUUID) {
 		return nil, ErrInvalidBalenaDeviceUUID
 	}
@@ -417,7 +417,7 @@ func (b *CloudClient) GetDeviceServiceEnvVars(
 
 	response, err := b.httpClient.R().
 		SetContext(ctx).
-		SetResult(BalenaResponse[BalenaDeviceServiceEnvVar]{}).
+		SetResult(Response[DeviceServiceEnvVar]{}).
 		Get("/v6/device_service_environment_variable?$filter=service_install/any(si:si/device%20eq%20" + strconv.Itoa(id) + ")" + "&$select=id,name,value&$select=id,name,value&$expand=service_install($select=id;$expand=installs__service($select=id,service_name))")
 	if err != nil {
 		return nil, fmt.Errorf("failed performing request for getting device(%s) service fleet env vars: %w", balenaDeviceUUID, err)
@@ -427,7 +427,7 @@ func (b *CloudClient) GetDeviceServiceEnvVars(
 		return nil, fmt.Errorf("error getting device(%s) service fleet env vars: %s", balenaDeviceUUID, response.Body())
 	}
 
-	balenaResult := response.Result().(*BalenaResponse[BalenaDeviceServiceEnvVar])
+	balenaResult := response.Result().(*Response[DeviceServiceEnvVar])
 	return balenaResult.D, nil
 }
 
@@ -592,7 +592,7 @@ func (b *CloudClient) HostLogin(token string) error {
 func (b *CloudClient) GetFleetReleases(
 	ctx context.Context,
 	name string,
-) ([]BalenaRelease, error) {
+) ([]Release, error) {
 	fleet, err := b.GetFleet(ctx, name)
 	if err != nil {
 		return nil, err
@@ -600,7 +600,7 @@ func (b *CloudClient) GetFleetReleases(
 
 	response, err := b.httpClient.R().
 		SetContext(ctx).
-		SetResult(BalenaResponse[BalenaRelease]{}).
+		SetResult(Response[Release]{}).
 		Get("/v6/release?$filter=belongs_to__application%20eq%20" + strconv.Itoa(fleet.ID) + "&" + OrderByCreatedAtQuerySelector + "&" + FleetReleasesQuerySelect)
 	if err != nil {
 		return nil, fmt.Errorf("failed performing request to get fleet %s(%d) releases: %w", name, fleet.ID, err)
@@ -610,7 +610,7 @@ func (b *CloudClient) GetFleetReleases(
 		return nil, fmt.Errorf("error getting fleet %s(%d) releases: %s", name, fleet.ID, response.Body())
 	}
 
-	balenaResult := response.Result().(*BalenaResponse[BalenaRelease])
+	balenaResult := response.Result().(*Response[Release])
 	if len(balenaResult.D) == 0 {
 		return nil, ErrResourceNotFound
 	}
