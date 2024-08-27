@@ -1,23 +1,10 @@
 package gobalena
 
 import (
-	"os"
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
-
-func init() {
-	output := zerolog.ConsoleWriter{
-		Out:        os.Stderr,
-		TimeFormat: zerolog.TimeFormatUnix,
-	}
-
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	log.Logger = log.Output(output)
-}
 
 const (
 	APIRetryCount      = 3
