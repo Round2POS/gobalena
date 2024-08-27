@@ -62,6 +62,6 @@ func (c *SturdyClient) SetHeader(header, value string) *SturdyClient {
 }
 
 func (c *SturdyClient) SetBaseURL(url string) *SturdyClient {
-	c.Client.SetHostURL(url)
+	c.Client.SetBaseURL(url)
 	return c
 }
