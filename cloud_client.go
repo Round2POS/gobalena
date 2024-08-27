@@ -24,10 +24,10 @@ type CloudClient struct {
 	httpClient *SturdyClient
 }
 
-func NewCloudClient(apiKey string) CloudClient {
+func NewCloudClient(apiKey, endpoint string) CloudClient {
 	return CloudClient{
 		httpClient: NewSturdyHTTPClient().
-			SetBaseURL("https://api.balena-cloud.com").
+			SetBaseURL(endpoint).
 			SetHeader("Authorization", "Bearer "+apiKey),
 	}
 }
