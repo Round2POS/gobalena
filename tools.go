@@ -14,3 +14,11 @@ func IsValidBalenaDeviceUUID(u string) bool {
 
 	return !strings.Contains(u, "-")
 }
+
+func RandomBalenaUUID() string {
+	return FormatBalenaUUID(uuid.New().String())
+}
+
+func FormatBalenaUUID(u string) string {
+	return strings.ReplaceAll(u, "-", "")
+}
