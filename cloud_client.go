@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -459,52 +460,67 @@ func (b *CloudClient) SetDeviceName(ctx context.Context, balenaDeviceUUID, name 
 }
 
 func (b *CloudClient) DownloadOS(
-	ctx context.Context, output string, deviceType DeviceType,
+	ctx context.Context, writer io.Writer, fleet string, deviceType DeviceType,
 ) error {
+	flt, err := b.GetFleet(ctx, fleet)
+	if err != nil {
+		return err
+	}
+
 	response, err := b.httpClient.R().
 		SetContext(ctx).
 		SetQueryParams(map[string]string{
-			"deviceType": string(deviceType),
-			"fileType":   ".img",
+			"deviceType":      string(deviceType),
+			"appId":           fmt.Sprintf("%d", flt.ID),
+			"fileType":        ".zip",
+			"version":         "latest",
+			"network":         "ethernet",
+			"developmentMode": "false",
 		}).
-		SetOutput(output).
+		SetDoNotParseResponse(true).
 		Get("/download")
 	if err != nil {
 		return fmt.Errorf("failed performing request to download os: %w", err)
 	}
+	defer response.RawResponse.Body.Close()
 
 	if response.IsError() {
 		return fmt.Errorf("error downloading os: %s", response.Body())
 	}
 
-	return nil
-}
-
-func (b *CloudClient) ConfigureOSImage(
-	ctx context.Context,
-	file, fleet, version string,
-) error {
-	cmd := exec.CommandContext(ctx, "balena",
-		"os", "configure", file,
-		"--version", version,
-		"--config-network", "ethernet",
-		"--fleet", fleet,
-	)
-
-	var dumpOut bytes.Buffer
-	var dumpErr bytes.Buffer
-	cmd.Stdout = &dumpOut
-	cmd.Stderr = &dumpErr
-
-	err := cmd.Run()
+	_, err = io.Copy(writer, response.RawResponse.Body)
 	if err != nil {
-		fmt.Println(dumpOut.String())
-		fmt.Println(dumpErr.String())
-		return fmt.Errorf("failed configuring os image: %w", err)
+		return fmt.Errorf("failed copying response body to writer: %w", err)
 	}
 
 	return nil
 }
+
+// func (b *CloudClient) ConfigureOSImage(
+// 	ctx context.Context,
+// 	file, fleet, version string,
+// ) error {
+// 	cmd := exec.CommandContext(ctx, "balena",
+// 		"os", "configure", file,
+// 		"--version", version,
+// 		"--config-network", "ethernet",
+// 		"--fleet", fleet,
+// 	)
+
+// 	var dumpOut bytes.Buffer
+// 	var dumpErr bytes.Buffer
+// 	cmd.Stdout = &dumpOut
+// 	cmd.Stderr = &dumpErr
+
+// 	err := cmd.Run()
+// 	if err != nil {
+// 		fmt.Println(dumpOut.String())
+// 		fmt.Println(dumpErr.String())
+// 		return fmt.Errorf("failed configuring os image: %w", err)
+// 	}
+
+// 	return nil
+// }
 
 func (b *CloudClient) MoveDeviceToFleet(
 	ctx context.Context,
