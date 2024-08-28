@@ -22,3 +22,7 @@ func RandomBalenaUUID() string {
 func FormatBalenaUUID(u string) string {
 	return strings.ReplaceAll(u, "-", "")
 }
+
+func ParseDeviceType(s string) DeviceType {
+	return DeviceType(s)
+}

@@ -482,17 +482,13 @@ func (b *CloudClient) DownloadOS(
 
 func (b *CloudClient) ConfigureOSImage(
 	ctx context.Context,
-	file, fleet, balenaDeviceUUID, version string,
+	file, fleet, version string,
 ) error {
-	if !IsValidBalenaDeviceUUID(balenaDeviceUUID) {
-		return ErrInvalidBalenaDeviceUUID
-	}
-
 	cmd := exec.CommandContext(ctx, "balena",
 		"os", "configure", file,
 		"--version", version,
 		"--config-network", "ethernet",
-		"--device", balenaDeviceUUID,
+		"--fleet", fleet,
 	)
 
 	var dumpOut bytes.Buffer
