@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -461,10 +462,10 @@ func (b *CloudClient) SetDeviceName(ctx context.Context, balenaDeviceUUID, name 
 
 func (b *CloudClient) DownloadOS(
 	ctx context.Context, writer io.Writer, fleet string, deviceType DeviceType,
-) error {
+) (string, error) {
 	flt, err := b.GetFleet(ctx, fleet)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	response, err := b.httpClient.R().
@@ -480,20 +481,33 @@ func (b *CloudClient) DownloadOS(
 		SetDoNotParseResponse(true).
 		Get("/download")
 	if err != nil {
-		return fmt.Errorf("failed performing request to download os: %w", err)
+		return "", fmt.Errorf("failed performing request to download os: %w", err)
 	}
 	defer response.RawResponse.Body.Close()
 
 	if response.IsError() {
-		return fmt.Errorf("error downloading os: %s", response.Body())
+		return "", fmt.Errorf("error downloading os: %s", response.Body())
+	}
+
+	var filename string
+	contentDisposition := response.Header().Get("Content-Disposition")
+	if contentDisposition != "" {
+		_, params, err := mime.ParseMediaType(contentDisposition)
+		if err == nil {
+			filename = params["filename"]
+		}
+	}
+
+	if filename == "" {
+		filename = string(deviceType) + fleet + ".zip"
 	}
 
 	_, err = io.Copy(writer, response.RawResponse.Body)
 	if err != nil {
-		return fmt.Errorf("failed copying response body to writer: %w", err)
+		return "", fmt.Errorf("failed copying response body to writer: %w", err)
 	}
 
-	return nil
+	return filename, nil
 }
 
 // func (b *CloudClient) ConfigureOSImage(
