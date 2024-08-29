@@ -507,6 +507,8 @@ func (b *CloudClient) DownloadOS(
 		filename = string(deviceType) + fleet + ".zip"
 	}
 
+	filename = strings.ReplaceAll(filename, "balena-cloud-", "")
+
 	// Set headers if HeaderSetter is provided
 	if headerSetter != nil {
 		headerSetter.SetHeader("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
