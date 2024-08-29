@@ -460,8 +460,13 @@ func (b *CloudClient) SetDeviceName(ctx context.Context, balenaDeviceUUID, name 
 	return nil
 }
 
+type HeaderSetter interface {
+	SetHeader(key, value string)
+}
+
 func (b *CloudClient) DownloadOS(
-	ctx context.Context, writer io.Writer, fleet string, deviceType DeviceType,
+	ctx context.Context, writer io.Writer, fleet string,
+	deviceType DeviceType, headerSetter HeaderSetter,
 ) (string, error) {
 	flt, err := b.GetFleet(ctx, fleet)
 	if err != nil {
@@ -500,6 +505,12 @@ func (b *CloudClient) DownloadOS(
 
 	if filename == "" {
 		filename = string(deviceType) + fleet + ".zip"
+	}
+
+	// Set headers if HeaderSetter is provided
+	if headerSetter != nil {
+		headerSetter.SetHeader("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+		headerSetter.SetHeader("Content-Type", response.Header().Get("Content-Type"))
 	}
 
 	_, err = io.Copy(writer, response.RawResponse.Body)
