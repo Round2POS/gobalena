@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	DeviceTypeGeneric   DeviceType = "genericx86-64-ext"
-	DeviceTypeSurfaceGo DeviceType = "surface-go"
-	DeviceTypeSurface6  DeviceType = "surface-6"
+	DeviceTypeGeneric     DeviceType = "genericx86-64-ext"
+	DeviceTypeSurfaceGo   DeviceType = "surface-go"
+	DeviceTypeSurfacePro6 DeviceType = "surface-pro-6"
 
 	DeviceQuerySelector           = "$select=id,uuid,ip_address,mac_address,public_address,device_name,os_version,os_variant,supervisor_version,is_online,last_connectivity_event,is_web_accessible,latitude,longitude,location,created_at,overall_status"
 	DeviceDetailsQuerySelector    = "$expand=is_running__release($expand=is_created_by__user($select=id,username,created_at),release_tag($select=tag_key,value,id)),should_be_running__release($expand=is_created_by__user($select=id,username,created_at),release_tag($select=tag_key,value,id)),belongs_to__application($select=id,app_name)"
