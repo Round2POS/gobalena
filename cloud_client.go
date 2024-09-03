@@ -41,7 +41,7 @@ func (b *CloudClient) GetDevice(
 	response, err := b.httpClient.R().
 		SetContext(ctx).
 		SetResult(Response[Device]{}).
-		Get("/v6/device(uuid='" + balenaDeviceUUID + "')?$select=" + DeviceQuerySelector)
+		Get("/v6/device(uuid='" + balenaDeviceUUID + "')?" + DeviceQuerySelector)
 	if err != nil {
 		return nil, fmt.Errorf("failed performing request to get device(%s) details: %w", balenaDeviceUUID, err)
 	}
