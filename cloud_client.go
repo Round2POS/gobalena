@@ -70,7 +70,7 @@ func (b *CloudClient) GetDeviceEnvVarID(
 	response, err := b.httpClient.R().
 		SetContext(ctx).
 		SetResult(Response[DeviceEnvVar]{}).
-		Get("/v6/device_environment_variable?\\$filter=device%20eq%20" + strconv.Itoa(balenaDeviceID))
+		Get("/v6/device_environment_variable?$filter=device%20eq%20" + strconv.Itoa(balenaDeviceID))
 	if err != nil {
 		return 0, fmt.Errorf("failed performing request to get device(%d) env var(%s): %w", balenaDeviceID, key, err)
 	}
