@@ -1,6 +1,7 @@
 package gobalena
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"strconv"
@@ -228,4 +229,60 @@ func (b *LocalClient) DeviceState(ctx context.Context) (*DeviceState, error) {
 
 	balenaResult := response.Result().(*DeviceState)
 	return balenaResult, nil
+}
+
+func (b *LocalClient) Purge(ctx context.Context) error {
+	err := Unlock(BalenaLockFile)
+	if err != nil {
+		return fmt.Errorf("error unlocking lockfile before shutting down: %w", err)
+	}
+
+	response, err := b.httpClient.R().
+		SetContext(ctx).
+		Post("/v2/applications/" + b.appID + "/purge?apikey=" + b.supervisorKey)
+	if err != nil {
+		return fmt.Errorf("failed performing request to purge: %w", err)
+	}
+
+	if response.IsError() {
+		return fmt.Errorf("error purging: %s", response.Body())
+	}
+
+	return nil
+}
+
+func (b *LocalClient) StreamLogs(ctx context.Context, stream chan []byte) error {
+	response, err := b.httpClient.R().
+		SetContext(ctx).
+		SetDoNotParseResponse(true).
+		SetBody(`{"follow":true,"all":true,"unit":"balena.service","count":40,"format":"json"}`).
+		Post("/v2/journal-logs?apikey=" + b.supervisorKey)
+	if err != nil {
+		return fmt.Errorf("failed performing request to stream logs: %w", err)
+	}
+	defer response.RawResponse.Body.Close()
+
+	if response.IsError() {
+		return fmt.Errorf("error streaming logs: %s", response.Body())
+	}
+
+	scanner := bufio.NewScanner(response.RawResponse.Body)
+	for scanner.Scan() {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case stream <- scanner.Bytes():
+			}
+		}
+	}
+	// Check for errors from the scanner
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("error reading from scanner: %w", err)
+	}
+
+	return nil
 }
