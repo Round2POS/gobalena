@@ -157,14 +157,16 @@ func (b *LocalClient) UpdateRelease(ctx context.Context, force bool) error {
 	return nil
 }
 
-func (b *LocalClient) RebootSystem(ctx context.Context) error {
+func (b *LocalClient) RebootSystem(ctx context.Context, force bool) error {
 	err := Unlock(BalenaLockFile)
 	if err != nil {
 		return fmt.Errorf("error unlocking lockfile before rebooting system: %w", err)
 	}
 
+	var data = strings.NewReader(`{"force": "` + strconv.FormatBool(force) + `"}`)
 	response, err := b.httpClient.R().
 		SetContext(ctx).
+		SetBody(data).
 		Post("/v1/reboot?apikey=" + b.supervisorKey)
 	if err != nil {
 		return fmt.Errorf("failed performing request for rebooting system: %w", err)
