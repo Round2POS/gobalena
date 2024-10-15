@@ -39,7 +39,6 @@ type CloudClient interface {
 	GetDeviceServiceEnvVars(ctx context.Context, balenaDeviceUUID string) ([]DeviceServiceEnvVar, error)
 	SetDeviceName(ctx context.Context, balenaDeviceUUID, name string) error
 	DownloadOS(ctx context.Context, writer io.Writer, fleet string, deviceType DeviceType, headerSetter HeaderSetter) (string, error)
-	// ConfigureOSImage(ctx context.Context, file, fleet, version string) error
 	MoveDeviceToFleet(ctx context.Context, balenaDeviceUUID, fleetName string) error
 	EnablePublicDeviceURL(ctx context.Context, balenaDeviceUUID string) error
 	HostLogin(token string) error
