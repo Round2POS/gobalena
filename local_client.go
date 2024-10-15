@@ -8,7 +8,21 @@ import (
 	"strings"
 )
 
-type LocalClient struct {
+type LocalClient interface {
+	RestartService(ctx context.Context, serviceName string) error
+	StopService(ctx context.Context, serviceName string) error
+	StartService(ctx context.Context, serviceName string) error
+	ServicesStatus(ctx context.Context) (*Status, error)
+	UpdateRelease(ctx context.Context, force bool) error
+	RebootSystem(ctx context.Context, force bool) error
+	ShutdownSystem(ctx context.Context) error
+	ServicesState(ctx context.Context) (*map[string]interface{}, error)
+	DeviceState(ctx context.Context) (*DeviceState, error)
+	Purge(ctx context.Context) error
+	StreamLogs(ctx context.Context, stream chan []byte) error
+}
+
+type localClient struct {
 	apiKey        string
 	supervisorURL string
 	supervisorKey string
@@ -18,7 +32,7 @@ type LocalClient struct {
 }
 
 func NewLocalClient(apiKey, supervisorURL, supervisorKey, appID string) LocalClient {
-	return LocalClient{
+	return &localClient{
 		apiKey:        apiKey,
 		supervisorURL: supervisorURL,
 		supervisorKey: supervisorKey,
@@ -28,7 +42,7 @@ func NewLocalClient(apiKey, supervisorURL, supervisorKey, appID string) LocalCli
 	}
 }
 
-func (b *LocalClient) RestartService(ctx context.Context, serviceName string) error {
+func (b *localClient) RestartService(ctx context.Context, serviceName string) error {
 	err := Unlock(BalenaLockFile)
 	if err != nil {
 		return fmt.Errorf("error unlocking lockfile before restarting service: %w", err)
@@ -56,7 +70,7 @@ func (b *LocalClient) RestartService(ctx context.Context, serviceName string) er
 	return nil
 }
 
-func (b *LocalClient) StopService(ctx context.Context, serviceName string) error {
+func (b *localClient) StopService(ctx context.Context, serviceName string) error {
 	err := Unlock(BalenaLockFile)
 	if err != nil {
 		return fmt.Errorf("error unlocking lockfile before stopping service: %w", err)
@@ -84,7 +98,7 @@ func (b *LocalClient) StopService(ctx context.Context, serviceName string) error
 	return nil
 }
 
-func (b *LocalClient) StartService(ctx context.Context, serviceName string) error {
+func (b *localClient) StartService(ctx context.Context, serviceName string) error {
 	err := Unlock(BalenaLockFile)
 	if err != nil {
 		return fmt.Errorf("error unlocking lockfile before starting service: %w", err)
@@ -112,7 +126,7 @@ func (b *LocalClient) StartService(ctx context.Context, serviceName string) erro
 	return nil
 }
 
-func (b *LocalClient) ServicesStatus(ctx context.Context) (*Status, error) {
+func (b *localClient) ServicesStatus(ctx context.Context) (*Status, error) {
 	response, err := b.httpClient.R().
 		SetContext(ctx).
 		SetResult(Status{}).
@@ -129,7 +143,7 @@ func (b *LocalClient) ServicesStatus(ctx context.Context) (*Status, error) {
 	return balenaResult, nil
 }
 
-func (b *LocalClient) UpdateRelease(ctx context.Context, force bool) error {
+func (b *localClient) UpdateRelease(ctx context.Context, force bool) error {
 	err := Unlock(BalenaLockFile)
 	if err != nil {
 		return fmt.Errorf("error unlocking lockfile before updating release: %w", err)
@@ -157,7 +171,7 @@ func (b *LocalClient) UpdateRelease(ctx context.Context, force bool) error {
 	return nil
 }
 
-func (b *LocalClient) RebootSystem(ctx context.Context, force bool) error {
+func (b *localClient) RebootSystem(ctx context.Context, force bool) error {
 	err := Unlock(BalenaLockFile)
 	if err != nil {
 		return fmt.Errorf("error unlocking lockfile before rebooting system: %w", err)
@@ -179,7 +193,7 @@ func (b *LocalClient) RebootSystem(ctx context.Context, force bool) error {
 	return nil
 }
 
-func (b *LocalClient) ShutdownSystem(ctx context.Context) error {
+func (b *localClient) ShutdownSystem(ctx context.Context) error {
 	err := Unlock(BalenaLockFile)
 	if err != nil {
 		return fmt.Errorf("error unlocking lockfile before shutting down: %w", err)
@@ -199,7 +213,7 @@ func (b *LocalClient) ShutdownSystem(ctx context.Context) error {
 	return nil
 }
 
-func (b *LocalClient) ServicesState(ctx context.Context) (*map[string]interface{}, error) {
+func (b *localClient) ServicesState(ctx context.Context) (*map[string]interface{}, error) {
 	response, err := b.httpClient.R().
 		SetContext(ctx).
 		SetResult(map[string]interface{}{}).
@@ -216,7 +230,7 @@ func (b *LocalClient) ServicesState(ctx context.Context) (*map[string]interface{
 	return balenaResult, nil
 }
 
-func (b *LocalClient) DeviceState(ctx context.Context) (*DeviceState, error) {
+func (b *localClient) DeviceState(ctx context.Context) (*DeviceState, error) {
 	response, err := b.httpClient.R().
 		SetContext(ctx).
 		SetResult(DeviceState{}).
@@ -233,7 +247,7 @@ func (b *LocalClient) DeviceState(ctx context.Context) (*DeviceState, error) {
 	return balenaResult, nil
 }
 
-func (b *LocalClient) Purge(ctx context.Context) error {
+func (b *localClient) Purge(ctx context.Context) error {
 	err := Unlock(BalenaLockFile)
 	if err != nil {
 		return fmt.Errorf("error unlocking lockfile before shutting down: %w", err)
@@ -253,7 +267,7 @@ func (b *LocalClient) Purge(ctx context.Context) error {
 	return nil
 }
 
-func (b *LocalClient) StreamLogs(ctx context.Context, stream chan []byte) error {
+func (b *localClient) StreamLogs(ctx context.Context, stream chan []byte) error {
 	response, err := b.httpClient.R().
 		SetContext(ctx).
 		SetDoNotParseResponse(true).

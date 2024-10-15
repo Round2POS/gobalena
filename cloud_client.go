@@ -22,19 +22,44 @@ const (
 	OrderByCreatedAtQuerySelector = "$orderby=created_at%20desc"
 )
 
-type CloudClient struct {
+type CloudClient interface {
+	GetDevice(ctx context.Context, balenaDeviceUUID string) (*Device, error)
+	GetDeviceEnvVarID(ctx context.Context, balenaDeviceID int, key string) (int, error)
+	UpdateDeviceEnvVar(ctx context.Context, balenaDeviceID, envVarID int, value string) error
+	GetDeviceDetails(ctx context.Context, balenaDeviceUUID string) (*Device, error)
+	GetDevicesDetails(ctx context.Context, balenaDeviceUUIDs []string) ([]Device, error)
+	GetDeviceID(ctx context.Context, balenaDeviceUUID string) (int, error)
+	GetFleet(ctx context.Context, name string) (*Fleet, error)
+	RegisterDevice(ctx context.Context, balenaDeviceUUID, fleetName string, deviceType DeviceType) error
+	DeleteDevice(ctx context.Context, balenaDeviceUUID string) error
+	GetDeviceEnvVars(ctx context.Context, balenaDeviceUUID string) ([]DeviceEnvVar, error)
+	CreateDeviceEnvVar(ctx context.Context, balenaDeviceUUID, key string, value interface{}) error
+	GetFleetEnvVars(ctx context.Context, name string) ([]FleetEnvVar, error)
+	GetServiceEnvVars(ctx context.Context, fleetName string) ([]ServiceEnvVar, error)
+	GetDeviceServiceEnvVars(ctx context.Context, balenaDeviceUUID string) ([]DeviceServiceEnvVar, error)
+	SetDeviceName(ctx context.Context, balenaDeviceUUID, name string) error
+	DownloadOS(ctx context.Context, writer io.Writer, fleet string, deviceType DeviceType, headerSetter HeaderSetter) (string, error)
+	// ConfigureOSImage(ctx context.Context, file, fleet, version string) error
+	MoveDeviceToFleet(ctx context.Context, balenaDeviceUUID, fleetName string) error
+	EnablePublicDeviceURL(ctx context.Context, balenaDeviceUUID string) error
+	HostLogin(token string) error
+	GetFleetReleases(ctx context.Context, name string) ([]Release, error)
+	PinDeviceToRelease(ctx context.Context, balenaDeviceUUID string, releaseID int) error
+}
+
+type cloudClient struct {
 	httpClient *SturdyClient
 }
 
 func NewCloudClient(apiKey, endpoint string) CloudClient {
-	return CloudClient{
+	return &cloudClient{
 		httpClient: NewSturdyHTTPClient().
 			SetBaseURL(endpoint).
 			SetHeader("Authorization", "Bearer "+apiKey),
 	}
 }
 
-func (b *CloudClient) GetDevice(
+func (b *cloudClient) GetDevice(
 	ctx context.Context,
 	balenaDeviceUUID string,
 ) (*Device, error) {
@@ -62,7 +87,7 @@ func (b *CloudClient) GetDevice(
 	return &balenaResult.D[0], nil
 }
 
-func (b *CloudClient) GetDeviceEnvVarID(
+func (b *cloudClient) GetDeviceEnvVarID(
 	ctx context.Context,
 	balenaDeviceID int,
 	key string,
@@ -89,7 +114,7 @@ func (b *CloudClient) GetDeviceEnvVarID(
 	return 0, ErrEnvVarNotFound
 }
 
-func (b *CloudClient) UpdateDeviceEnvVar(
+func (b *cloudClient) UpdateDeviceEnvVar(
 	ctx context.Context,
 	balenaDeviceID, envVarID int,
 	value string,
@@ -110,7 +135,7 @@ func (b *CloudClient) UpdateDeviceEnvVar(
 	return nil
 }
 
-func (b *CloudClient) GetDeviceDetails(
+func (b *cloudClient) GetDeviceDetails(
 	ctx context.Context,
 	balenaDeviceUUID string,
 ) (*Device, error) {
@@ -142,7 +167,7 @@ func (b *CloudClient) GetDeviceDetails(
 	return &balenaResult.D[0], nil
 }
 
-func (b *CloudClient) GetDevicesDetails(
+func (b *cloudClient) GetDevicesDetails(
 	ctx context.Context,
 	balenaDeviceUUIDs []string,
 ) ([]Device, error) {
@@ -178,7 +203,7 @@ func (b *CloudClient) GetDevicesDetails(
 	return balenaResult.D, nil
 }
 
-func (b *CloudClient) GetDeviceID(
+func (b *cloudClient) GetDeviceID(
 	ctx context.Context,
 	balenaDeviceUUID string,
 ) (int, error) {
@@ -210,7 +235,7 @@ func (b *CloudClient) GetDeviceID(
 	return balenaResult.D[0].ID, nil
 }
 
-func (b *CloudClient) GetFleet(ctx context.Context, name string) (*Fleet, error) {
+func (b *cloudClient) GetFleet(ctx context.Context, name string) (*Fleet, error) {
 	response, err := b.httpClient.R().
 		SetContext(ctx).
 		SetResult(Response[Fleet]{}).
@@ -235,7 +260,7 @@ func (b *CloudClient) GetFleet(ctx context.Context, name string) (*Fleet, error)
 	return &balenaResult.D[0], nil
 }
 
-func (b *CloudClient) RegisterDevice(
+func (b *cloudClient) RegisterDevice(
 	ctx context.Context,
 	balenaDeviceUUID, fleetName string,
 	deviceType DeviceType,
@@ -264,7 +289,7 @@ func (b *CloudClient) RegisterDevice(
 	return nil
 }
 
-func (b *CloudClient) DeleteDevice(
+func (b *cloudClient) DeleteDevice(
 	ctx context.Context,
 	balenaDeviceUUID string,
 ) error {
@@ -289,7 +314,7 @@ func (b *CloudClient) DeleteDevice(
 	return nil
 }
 
-func (b *CloudClient) GetDeviceEnvVars(
+func (b *cloudClient) GetDeviceEnvVars(
 	ctx context.Context,
 	balenaDeviceUUID string,
 ) ([]DeviceEnvVar, error) {
@@ -317,7 +342,7 @@ func (b *CloudClient) GetDeviceEnvVars(
 	return response.Result().(*Response[DeviceEnvVar]).D, nil
 }
 
-func (b *CloudClient) CreateDeviceEnvVar(
+func (b *cloudClient) CreateDeviceEnvVar(
 	ctx context.Context, balenaDeviceUUID, key string, value interface{},
 ) error {
 	if !IsValidBalenaDeviceUUID(balenaDeviceUUID) {
@@ -348,7 +373,7 @@ func (b *CloudClient) CreateDeviceEnvVar(
 	return nil
 }
 
-func (b *CloudClient) GetFleetEnvVars(
+func (b *cloudClient) GetFleetEnvVars(
 	ctx context.Context,
 	name string,
 ) ([]FleetEnvVar, error) {
@@ -376,7 +401,7 @@ func (b *CloudClient) GetFleetEnvVars(
 	return response.Result().(*Response[FleetEnvVar]).D, nil
 }
 
-func (b *CloudClient) GetServiceEnvVars(
+func (b *cloudClient) GetServiceEnvVars(
 	ctx context.Context,
 	fleetName string,
 ) ([]ServiceEnvVar, error) {
@@ -404,7 +429,7 @@ func (b *CloudClient) GetServiceEnvVars(
 	return response.Result().(*Response[ServiceEnvVar]).D, nil
 }
 
-func (b *CloudClient) GetDeviceServiceEnvVars(
+func (b *cloudClient) GetDeviceServiceEnvVars(
 	ctx context.Context,
 	balenaDeviceUUID string,
 ) ([]DeviceServiceEnvVar, error) {
@@ -433,7 +458,7 @@ func (b *CloudClient) GetDeviceServiceEnvVars(
 	return balenaResult.D, nil
 }
 
-func (b *CloudClient) SetDeviceName(ctx context.Context, balenaDeviceUUID, name string) error {
+func (b *cloudClient) SetDeviceName(ctx context.Context, balenaDeviceUUID, name string) error {
 	if !IsValidBalenaDeviceUUID(balenaDeviceUUID) {
 		return ErrInvalidBalenaDeviceUUID
 	}
@@ -464,7 +489,7 @@ type HeaderSetter interface {
 	SetHeader(key, value string)
 }
 
-func (b *CloudClient) DownloadOS(
+func (b *cloudClient) DownloadOS(
 	ctx context.Context, writer io.Writer, fleet string,
 	deviceType DeviceType, headerSetter HeaderSetter,
 ) (string, error) {
@@ -549,7 +574,7 @@ func (b *CloudClient) DownloadOS(
 // 	return nil
 // }
 
-func (b *CloudClient) MoveDeviceToFleet(
+func (b *cloudClient) MoveDeviceToFleet(
 	ctx context.Context,
 	balenaDeviceUUID, fleetName string,
 ) error {
@@ -584,7 +609,7 @@ func (b *CloudClient) MoveDeviceToFleet(
 	return nil
 }
 
-func (b *CloudClient) EnablePublicDeviceURL(
+func (b *cloudClient) EnablePublicDeviceURL(
 	ctx context.Context,
 	balenaDeviceUUID string,
 ) error {
@@ -614,7 +639,7 @@ func (b *CloudClient) EnablePublicDeviceURL(
 	return nil
 }
 
-func (b *CloudClient) HostLogin(token string) error {
+func (b *cloudClient) HostLogin(token string) error {
 	cmd := exec.Command("balena", "login", "--token", token)
 
 	var dumpOut, dumpErr bytes.Buffer
@@ -628,7 +653,7 @@ func (b *CloudClient) HostLogin(token string) error {
 	return nil
 }
 
-func (b *CloudClient) GetFleetReleases(
+func (b *cloudClient) GetFleetReleases(
 	ctx context.Context,
 	name string,
 ) ([]Release, error) {
@@ -656,7 +681,7 @@ func (b *CloudClient) GetFleetReleases(
 	return balenaResult.D, nil
 }
 
-func (b *CloudClient) PinDeviceToRelease(
+func (b *cloudClient) PinDeviceToRelease(
 	ctx context.Context,
 	balenaDeviceUUID string,
 	releaseID int,
