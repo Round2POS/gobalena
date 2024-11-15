@@ -22,9 +22,9 @@ func NewSturdyHTTPClient() *SturdyClient {
 			SetHeader("Content-Type", "application/json").
 			SetRetryCount(APIRetryCount).
 			SetRetryWaitTime(APIRetryBackoff).
-			SetDebug(true).
-			EnableGenerateCurlOnDebug().
-			EnableTrace().
+			// SetDebug(true).
+			// EnableGenerateCurlOnDebug().
+			// EnableTrace().
 			SetRetryMaxWaitTime(MaxAPIRetryBackoff).
 			AddRetryCondition(func(r *resty.Response, err error) bool {
 				if err != nil {
