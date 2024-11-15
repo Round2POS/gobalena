@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"mime"
-	"net/url"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -171,26 +170,22 @@ func (b *cloudClient) GetDevicesDetails(
 	ctx context.Context,
 	balenaDeviceUUIDs []string,
 ) ([]Device, error) {
-	filter := "uuid in("
+	filter := ""
 	for i, uuid := range balenaDeviceUUIDs {
 		if !IsValidBalenaDeviceUUID(uuid) {
 			return nil, ErrInvalidBalenaDeviceUUID
 		}
+
 		filter += "'" + uuid + "'"
 		if i < len(balenaDeviceUUIDs)-1 {
 			filter += ","
 		}
 	}
-	filter += ")"
-
-	// Properly encode the query
-	filterEncoded := url.QueryEscape(filter)
-	query := filterEncoded + "&" + DeviceDetailsQuerySelector + "&" + DeviceQuerySelector
 
 	response, err := b.httpClient.R().
 		SetContext(ctx).
 		SetResult(Response[Device]{}).
-		Get("/v6/device?$filter=" + query)
+		Get("/v6/device?$filter=uuid%20in(" + filter + ")&" + DeviceDetailsQuerySelector + "&" + DeviceQuerySelector)
 	if err != nil {
 		return nil, fmt.Errorf("failed performing request to get devices(%s) details: %w", balenaDeviceUUIDs, err)
 	}
