@@ -191,7 +191,7 @@ func (b *cloudClient) GetDevicesDetails(
 	}
 
 	if response.IsError() {
-		return nil, fmt.Errorf("error getting devices(%s) details: %s", balenaDeviceUUIDs, response.Body())
+		return nil, fmt.Errorf("error getting devices(%s) details: status code(%d) %s", balenaDeviceUUIDs, response.StatusCode(), response.Body())
 	}
 
 	balenaResult := response.Result().(*Response[Device])
