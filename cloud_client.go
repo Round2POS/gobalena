@@ -34,6 +34,7 @@ type CloudClient interface {
 	DeleteDevice(ctx context.Context, balenaDeviceUUID string) error
 	GetDeviceEnvVars(ctx context.Context, balenaDeviceUUID string) ([]DeviceEnvVar, error)
 	CreateDeviceEnvVar(ctx context.Context, balenaDeviceUUID, key string, value interface{}) error
+	DeleteDeviceEnvVar(ctx context.Context, balenaDeviceUUID string, envVarID int) error
 	GetFleetEnvVars(ctx context.Context, name string) ([]FleetEnvVar, error)
 	GetServiceEnvVars(ctx context.Context, fleetName string) ([]ServiceEnvVar, error)
 	GetDeviceServiceEnvVars(ctx context.Context, balenaDeviceUUID string) ([]DeviceServiceEnvVar, error)
@@ -367,6 +368,27 @@ func (b *cloudClient) CreateDeviceEnvVar(
 
 	if response.IsError() {
 		return fmt.Errorf("error creating device(%s) env var(%s): %s", balenaDeviceUUID, key, response.Body())
+	}
+
+	return nil
+}
+
+func (b *cloudClient) DeleteDeviceEnvVar(
+	ctx context.Context, balenaDeviceUUID string, envVarID int,
+) error {
+	if !IsValidBalenaDeviceUUID(balenaDeviceUUID) {
+		return ErrInvalidBalenaDeviceUUID
+	}
+
+	response, err := b.httpClient.R().
+		SetContext(ctx).
+		Delete("/v6/device_environment_variable(" + strconv.Itoa(envVarID) + ")")
+	if err != nil {
+		return fmt.Errorf("failed performing request to delete device(%s) env var(%d): %w", balenaDeviceUUID, envVarID, err)
+	}
+
+	if response.IsError() {
+		return fmt.Errorf("error deleting device(%s) env var(%d): %s", balenaDeviceUUID, envVarID, response.Body())
 	}
 
 	return nil
