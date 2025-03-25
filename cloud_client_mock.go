@@ -18,6 +18,11 @@ func (m *mockCloudClient) CreateDeviceEnvVar(ctx context.Context, balenaDeviceUU
 	return nil
 }
 
+// DeleteDeviceEnvVar implements CloudClient.
+func (m *mockCloudClient) DeleteDeviceEnvVar(ctx context.Context, balenaDeviceUUID string, envVarID int) error {
+	return nil
+}
+
 // DeleteDevice implements CloudClient.
 func (m *mockCloudClient) DeleteDevice(ctx context.Context, balenaDeviceUUID string) error {
 	return nil
