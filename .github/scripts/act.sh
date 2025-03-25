@@ -52,7 +52,7 @@ git add .
 # do use --bind, you will need to manually clean up the directory after the run,
 # because it uses root to create the directory and files.
 go run github.com/nektos/act@v0.2.68 \
-  -P "ubuntu-v22.04-c16-m64=catthehacker/ubuntu:act-22.04" \
+  -P "ubuntu-v22.04=catthehacker/ubuntu:act-22.04" \
   push \
   --action-offline-mode \
   --use-new-action-cache \
