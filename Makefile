@@ -3,7 +3,7 @@ deploy:
 	git commit -am "deploy" && \
 	git tag $$VERSION && \
 	git push origin $$VERSION && \
-	go list -m github.com/jordanlumley/gobalena@$$VERSION && \
+	go list -m github.com/Round2POS/gobalena@$$VERSION && \
 	git pull origin main && \
 	git merge $$VERSION && \
 	git push
