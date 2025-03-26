@@ -93,6 +93,11 @@ func (m *mockCloudClient) GetServiceEnvVars(ctx context.Context, fleetName strin
 	return []ServiceEnvVar{}, nil
 }
 
+// DeleteDeviceServiceEnvVar implements CloudClient.
+func (m *mockCloudClient) DeleteDeviceServiceEnvVar(ctx context.Context, balenaDeviceUUID string, envVarID int) error {
+	return nil
+}
+
 // HostLogin implements CloudClient.
 func (m *mockCloudClient) HostLogin(token string) error {
 	return nil
