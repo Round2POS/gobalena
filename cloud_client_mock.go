@@ -13,8 +13,13 @@ func NewMockCloudClient() CloudClient {
 	return &mockCloudClient{}
 }
 
+// CreateDeviceServiceEnvVar implements CloudClient.
+func (m *mockCloudClient) CreateDeviceServiceEnvVar(ctx context.Context, balenaDeviceUUID string, name string, serviceInstallID int, value string) error {
+	return nil
+}
+
 // CreateDeviceEnvVar implements CloudClient.
-func (m *mockCloudClient) CreateDeviceEnvVar(ctx context.Context, balenaDeviceUUID string, key string, value interface{}) error {
+func (m *mockCloudClient) CreateDeviceEnvVar(ctx context.Context, balenaDeviceUUID string, name string, value string) error {
 	return nil
 }
 
@@ -73,6 +78,11 @@ func (m *mockCloudClient) GetDevicesDetails(ctx context.Context, balenaDeviceUUI
 	return []Device{}, nil
 }
 
+// GetServiceInstallID implements CloudClient.
+func (m *mockCloudClient) GetDeviceServiceInstallIDs(ctx context.Context, balenaDeviceUUID string) ([]DeviceServiceInstall, error) {
+	return []DeviceServiceInstall{}, nil
+}
+
 // GetFleet implements CloudClient.
 func (m *mockCloudClient) GetFleet(ctx context.Context, name string) (*Fleet, error) {
 	return &Fleet{}, nil
@@ -125,5 +135,10 @@ func (m *mockCloudClient) SetDeviceName(ctx context.Context, balenaDeviceUUID st
 
 // UpdateDeviceEnvVar implements CloudClient.
 func (m *mockCloudClient) UpdateDeviceEnvVar(ctx context.Context, balenaDeviceID int, envVarID int, value string) error {
+	return nil
+}
+
+// UpdateDeviceServiceEnvVar implements CloudClient.
+func (m *mockCloudClient) UpdateDeviceServiceEnvVar(ctx context.Context, balenaDeviceID int, envVarID int, value string) error {
 	return nil
 }

@@ -24,21 +24,28 @@ const (
 
 type CloudClient interface {
 	GetDevice(ctx context.Context, balenaDeviceUUID string) (*Device, error)
-	GetDeviceEnvVarID(ctx context.Context, balenaDeviceID int, key string) (int, error)
-	UpdateDeviceEnvVar(ctx context.Context, balenaDeviceID, envVarID int, value string) error
 	GetDeviceDetails(ctx context.Context, balenaDeviceUUID string) (*Device, error)
 	GetDevicesDetails(ctx context.Context, balenaDeviceUUIDs []string) ([]Device, error)
 	GetDeviceID(ctx context.Context, balenaDeviceUUID string) (int, error)
 	GetFleet(ctx context.Context, name string) (*Fleet, error)
 	RegisterDevice(ctx context.Context, balenaDeviceUUID, fleetName string, deviceType DeviceType) error
 	DeleteDevice(ctx context.Context, balenaDeviceUUID string) error
+
+	CreateDeviceEnvVar(ctx context.Context, balenaDeviceUUID, key string, value string) error
 	GetDeviceEnvVars(ctx context.Context, balenaDeviceUUID string) ([]DeviceEnvVar, error)
-	CreateDeviceEnvVar(ctx context.Context, balenaDeviceUUID, key string, value interface{}) error
+	GetDeviceEnvVarID(ctx context.Context, balenaDeviceID int, key string) (int, error)
+	UpdateDeviceEnvVar(ctx context.Context, balenaDeviceID, envVarID int, value string) error
 	DeleteDeviceEnvVar(ctx context.Context, balenaDeviceID, envVarID int) error
+
 	GetFleetEnvVars(ctx context.Context, name string) ([]FleetEnvVar, error)
 	GetServiceEnvVars(ctx context.Context, fleetName string) ([]ServiceEnvVar, error)
+	GetDeviceServiceInstallIDs(ctx context.Context, balenaDeviceUUID string) ([]DeviceServiceInstall, error)
+
+	CreateDeviceServiceEnvVar(ctx context.Context, balenaDeviceUUID, name string, serviceInstallID int, value string) error
 	GetDeviceServiceEnvVars(ctx context.Context, balenaDeviceUUID string) ([]DeviceServiceEnvVar, error)
+	UpdateDeviceServiceEnvVar(ctx context.Context, balenaDeviceID, envVarID int, value string) error
 	DeleteDeviceServiceEnvVar(ctx context.Context, balenaDeviceID, envVarID int) error
+
 	SetDeviceName(ctx context.Context, balenaDeviceUUID, name string) error
 	DownloadOS(ctx context.Context, writer io.Writer, fleet string, deviceType DeviceType, headerSetter HeaderSetter) (string, error)
 	MoveDeviceToFleet(ctx context.Context, balenaDeviceUUID, fleetName string) error
@@ -98,11 +105,11 @@ func (b *cloudClient) GetDeviceEnvVarID(
 		SetResult(Response[DeviceEnvVar]{}).
 		Get("/v6/device_environment_variable?$filter=device%20eq%20" + strconv.Itoa(balenaDeviceID))
 	if err != nil {
-		return 0, fmt.Errorf("failed performing request to get device(%d) env var(%s): %w", balenaDeviceID, key, err)
+		return 0, fmt.Errorf("error getting device env var id for key(%s) on device(%d): %w", key, balenaDeviceID, err)
 	}
 
 	if response.IsError() {
-		return 0, fmt.Errorf("error setting device(%d) env var(%s): %s", balenaDeviceID, key, response.Body())
+		return 0, fmt.Errorf("error getting device env var id for key(%s) on device(%d): response error: %s", key, balenaDeviceID, response.Body())
 	}
 
 	balenaResult := response.Result().(*Response[DeviceEnvVar])
@@ -344,7 +351,7 @@ func (b *cloudClient) GetDeviceEnvVars(
 }
 
 func (b *cloudClient) CreateDeviceEnvVar(
-	ctx context.Context, balenaDeviceUUID, key string, value interface{},
+	ctx context.Context, balenaDeviceUUID, key string, value string,
 ) error {
 	if !IsValidBalenaDeviceUUID(balenaDeviceUUID) {
 		return ErrInvalidBalenaDeviceUUID
@@ -447,6 +454,67 @@ func (b *cloudClient) GetServiceEnvVars(
 	return response.Result().(*Response[ServiceEnvVar]).D, nil
 }
 
+func (b *cloudClient) GetDeviceServiceInstallIDs(
+	ctx context.Context,
+	balenaDeviceUUID string,
+) ([]DeviceServiceInstall, error) {
+
+	response, err := b.httpClient.R().
+		SetContext(ctx).
+		SetResult(Response[ServiceInstallResp]{}).
+		Get("/v7/service_install?$filter=device/uuid%20eq%20'" + balenaDeviceUUID + "'&$expand=installs__service($select=*)")
+	if err != nil {
+		return nil, fmt.Errorf("failed performing request for getting device(%s) service install IDs: %w", balenaDeviceUUID, err)
+	}
+
+	if response.IsError() {
+		return nil, fmt.Errorf("error getting device service install IDs for device (%s): %s", balenaDeviceUUID, response.Body())
+	}
+
+	balenaResult, ok := response.Result().(*Response[ServiceInstallResp])
+	if !ok {
+		return nil, fmt.Errorf("failed to cast response to ServiceInstall")
+	}
+
+	services := make([]DeviceServiceInstall, len(balenaResult.D))
+	for i, serviceInstall := range balenaResult.D {
+		for _, installService := range serviceInstall.InstallsService {
+			services[i] = DeviceServiceInstall{
+				ServiceInstallID: serviceInstall.ServiceInstallID,
+				ServiceName:      installService.ServiceName,
+			}
+		}
+	}
+
+	return services, nil
+}
+
+func (b *cloudClient) CreateDeviceServiceEnvVar(
+	ctx context.Context, balenaDeviceUUID, name string, serviceInstallID int, value string,
+) error {
+	if !IsValidBalenaDeviceUUID(balenaDeviceUUID) {
+		return ErrInvalidBalenaDeviceUUID
+	}
+
+	response, err := b.httpClient.R().
+		SetContext(ctx).
+		SetBody(map[string]interface{}{
+			"service_install": serviceInstallID,
+			"name":            name,
+			"value":           value,
+		}).
+		Post("/v6/device_service_environment_variable")
+	if err != nil {
+		return fmt.Errorf("failed performing request to create device service env var for device (%s) with name (%s): %w", balenaDeviceUUID, name, err)
+	}
+
+	if response.IsError() {
+		return fmt.Errorf("error creating device service env var for device (%s) with name (%s): %s", balenaDeviceUUID, name, response.Body())
+	}
+
+	return nil
+}
+
 func (b *cloudClient) GetDeviceServiceEnvVars(
 	ctx context.Context,
 	balenaDeviceUUID string,
@@ -463,7 +531,7 @@ func (b *cloudClient) GetDeviceServiceEnvVars(
 	response, err := b.httpClient.R().
 		SetContext(ctx).
 		SetResult(Response[DeviceServiceEnvVar]{}).
-		Get("/v6/device_service_environment_variable?$filter=service_install/any(si:si/device%20eq%20" + strconv.Itoa(id) + ")" + "&$select=id,name,value&$select=id,name,value&$expand=service_install($select=id;$expand=installs__service($select=id,service_name))")
+		Get("/v6/device_service_environment_variable?$filter=service_install/any(si:si/device%20eq%20" + strconv.Itoa(id) + ")" + "&$select=id,name,value&$expand=service_install($select=id;$expand=installs__service($select=id,service_name))")
 	if err != nil {
 		return nil, fmt.Errorf("failed performing request for getting device(%s) service fleet env vars: %w", balenaDeviceUUID, err)
 	}
@@ -474,6 +542,28 @@ func (b *cloudClient) GetDeviceServiceEnvVars(
 
 	balenaResult := response.Result().(*Response[DeviceServiceEnvVar])
 	return balenaResult.D, nil
+}
+
+func (b *cloudClient) UpdateDeviceServiceEnvVar(
+	ctx context.Context, balenaDeviceID, envVarID int, value string,
+) error {
+
+	response, err := b.httpClient.R().
+		SetContext(ctx).
+		SetBody(map[string]interface{}{
+			"id":    envVarID,
+			"value": value,
+		}).
+		Patch("/v6/device_service_environment_variable(" + strconv.Itoa(envVarID) + ")?$filter=service_install/any(si:si/device%20eq%20" + strconv.Itoa(balenaDeviceID) + ")")
+	if err != nil {
+		return fmt.Errorf("failed performing request to update device(%d) service env var(%d): %w", balenaDeviceID, envVarID, err)
+	}
+
+	if response.IsError() {
+		return fmt.Errorf("error updating device(%d) service env var(%d): %s", balenaDeviceID, envVarID, response.Body())
+	}
+
+	return nil
 }
 
 func (b *cloudClient) DeleteDeviceServiceEnvVar(
