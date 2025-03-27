@@ -1,0 +1,16 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.5.0
+  hooks:
+  - id: check-case-conflict
+  - id: check-merge-conflict
+  - id: detect-private-key
+  - id: check-vcs-permalinks
+  - id: destroyed-symlinks
+  - id: mixed-line-ending
+  - id: check-byte-order-marker
+  - id: check-shebang-scripts-are-executable
+- repo: https://github.com/jlebar/pre-commit-hooks
+  rev: f2d115a052860b09b2888b4f104be614bf3b4779
+  hooks:
+  - id: do-not-submit
