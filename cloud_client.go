@@ -476,13 +476,13 @@ func (b *cloudClient) GetDeviceServiceInstallIDs(
 		return nil, fmt.Errorf("failed to cast response to ServiceInstall")
 	}
 
-	services := make([]DeviceServiceInstall, len(balenaResult.D))
-	for i, serviceInstall := range balenaResult.D {
+	services := make([]DeviceServiceInstall, 0)
+	for _, serviceInstall := range balenaResult.D {
 		for _, installService := range serviceInstall.InstallsService {
-			services[i] = DeviceServiceInstall{
+			services = append(services, DeviceServiceInstall{
 				ServiceInstallID: serviceInstall.ServiceInstallID,
 				ServiceName:      installService.ServiceName,
-			}
+			})
 		}
 	}
 
