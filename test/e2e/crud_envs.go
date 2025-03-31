@@ -1,4 +1,4 @@
-// To run thsi test:
+// To run this test:
 //
 // ```bash
 // doppler setup
@@ -23,7 +23,8 @@ import (
 	"github.com/Round2POS/gobalena"
 )
 
-func deleteEnvVarsByName(client gobalena.CloudClient, balenaDeviceUUID string, balenaDeviceID int, name string) error {
+// Utility function to delete a device env var with a given name, if it exists.
+func deleteEnvVarByName(client gobalena.CloudClient, balenaDeviceUUID string, balenaDeviceID int, name string) error {
 	//////////////////////////////////////////////////////////////////////////////
 	log.Printf("Deleting device env vars: %s", name)
 	envVars, err := client.GetDeviceEnvVars(context.Background(), balenaDeviceUUID)
@@ -45,6 +46,7 @@ func deleteEnvVarsByName(client gobalena.CloudClient, balenaDeviceUUID string, b
 	return nil
 }
 
+// Utility function to delete all device service env vars with a given name, if they exist.
 func deleteServiceEnvVarsByName(client gobalena.CloudClient, balenaDeviceUUID string, balenaDeviceID int, name string) error {
 	//////////////////////////////////////////////////////////////////////////////
 	log.Printf("Deleting device service env vars: %s", name)
@@ -66,6 +68,7 @@ func deleteServiceEnvVarsByName(client gobalena.CloudClient, balenaDeviceUUID st
 	return nil
 }
 
+// Utility function to get a device env var by name.
 func getEnvVarByName(client gobalena.CloudClient, balenaDeviceUUID string, balenaDeviceID int, name string) (*gobalena.DeviceEnvVar, error) {
 	envVars, err := client.GetDeviceEnvVars(context.Background(), balenaDeviceUUID)
 	if err != nil {
@@ -83,6 +86,7 @@ func getEnvVarByName(client gobalena.CloudClient, balenaDeviceUUID string, balen
 	return nil, nil
 }
 
+// Utility function to get a service install ID by service name.
 func getServiceInstallIDOrDie(client gobalena.CloudClient, balenaDeviceUUID string, serviceName string) int {
 	//////////////////////////////////////////////////////////////////////////////
 	log.Printf("Getting service install ID for: %s", serviceName)
@@ -104,28 +108,8 @@ func getServiceInstallIDOrDie(client gobalena.CloudClient, balenaDeviceUUID stri
 	return 0
 }
 
-func getServiceIDOrDie(client gobalena.CloudClient, balenaDeviceUUID string, serviceName string) int {
-	//////////////////////////////////////////////////////////////////////////////
-	log.Printf("Getting service ID for: %s", serviceName)
-	services, err := client.GetDeviceServiceInstallIDs(context.Background(), balenaDeviceUUID)
-	if err != nil {
-		log.Fatalf("error getting service id: error getting device service env vars: %v", err)
-	}
-
-	for _, service := range services {
-		if service.ServiceName != serviceName {
-			continue
-		}
-
-		return service.ServiceID
-	}
-
-	log.Fatalf("error getting service id: service not found (service name: %s)", serviceName)
-
-	return 0
-}
-
-func getServiceEnvVarByName(client gobalena.CloudClient, balenaDeviceUUID string, balenaDeviceID int, name string, serviceInstallID int) (*gobalena.DeviceServiceEnvVar, error) {
+// Utility function to get a device service env var by name and service install ID.
+func getServiceEnvVarByName(client gobalena.CloudClient, balenaDeviceUUID string, name string, serviceInstallID int) (*gobalena.DeviceServiceEnvVar, error) {
 	serviceEnvVars, err := client.GetDeviceServiceEnvVars(context.Background(), balenaDeviceUUID)
 	if err != nil {
 		return nil, fmt.Errorf("error getting device service env vars: %v", err)
@@ -148,10 +132,11 @@ func getServiceEnvVarByName(client gobalena.CloudClient, balenaDeviceUUID string
 	return nil, nil
 }
 
+// This is called at the beginning of each test to clear the device env var and reset the test state.
 func clearEnvVarOrDie(client gobalena.CloudClient, balenaDeviceUUID string, balenaDeviceID int, name string) {
 	//////////////////////////////////////////////////////////////////////////////
 	log.Printf("Deleting device env var: %s", name)
-	err := deleteEnvVarsByName(client, balenaDeviceUUID, balenaDeviceID, name)
+	err := deleteEnvVarByName(client, balenaDeviceUUID, balenaDeviceID, name)
 	if err != nil {
 		log.Fatalf("Error deleting device env var: %v", err)
 	}
@@ -172,6 +157,7 @@ func clearEnvVarOrDie(client gobalena.CloudClient, balenaDeviceUUID string, bale
 
 }
 
+// This is called at the beginning of each test to clear the device service env var and reset the test state.
 func clearServiceEnvVarOrDie(client gobalena.CloudClient, balenaDeviceUUID string, balenaDeviceID int, name string, serviceInstallID int) {
 	//////////////////////////////////////////////////////////////////////////////
 	log.Printf("Deleting device service env var: %s", name)
@@ -182,7 +168,7 @@ func clearServiceEnvVarOrDie(client gobalena.CloudClient, balenaDeviceUUID strin
 	log.Printf("Device service env var deleted: %s", name)
 	//////////////////////////////////////////////////////////////////////////////
 	log.Printf("Confirming deleted device service env var: %s", name)
-	serviceEnvVar, err := getServiceEnvVarByName(client, balenaDeviceUUID, balenaDeviceID, name, serviceInstallID)
+	serviceEnvVar, err := getServiceEnvVarByName(client, balenaDeviceUUID, name, serviceInstallID)
 	if err != nil {
 		log.Fatalf("Error getting device service env var: %v", err)
 	}
@@ -194,6 +180,7 @@ func clearServiceEnvVarOrDie(client gobalena.CloudClient, balenaDeviceUUID strin
 	log.Printf("Confirmed device service env var deleted: %s", name)
 }
 
+// Test deleting a regular device env var.
 func testDeleteDeviceEnvVar(client gobalena.CloudClient, balenaDeviceUUID string, balenaDeviceID int, name string) {
 	clearEnvVarOrDie(client, balenaDeviceUUID, balenaDeviceID, name)
 
@@ -245,7 +232,7 @@ func testDeleteDeviceServiceEnvVar(client gobalena.CloudClient, balenaDeviceUUID
 
 	log.Printf("Confirming device service env var created: %s", name)
 
-	serviceEnvVar, err := getServiceEnvVarByName(client, balenaDeviceUUID, balenaDeviceID, name, serviceInstallID)
+	serviceEnvVar, err := getServiceEnvVarByName(client, balenaDeviceUUID, name, serviceInstallID)
 	if err != nil {
 		log.Fatalf("Error getting device service env var: %v", err)
 	}
@@ -261,7 +248,7 @@ func testDeleteDeviceServiceEnvVar(client gobalena.CloudClient, balenaDeviceUUID
 	}
 
 	log.Printf("Confirming device service env var deleted: %s", name)
-	serviceEnvVar, err = getServiceEnvVarByName(client, balenaDeviceUUID, balenaDeviceID, name, serviceInstallID)
+	serviceEnvVar, err = getServiceEnvVarByName(client, balenaDeviceUUID, name, serviceInstallID)
 	if err != nil {
 		log.Fatalf("Error getting device service env var: %v", err)
 	}
@@ -318,7 +305,7 @@ func testUpdateDeviceServiceEnvVar(client gobalena.CloudClient, balenaDeviceUUID
 	}
 
 	log.Printf("Confirming device service env var created: %s", name)
-	serviceEnvVar, err := getServiceEnvVarByName(client, balenaDeviceUUID, balenaDeviceID, name, serviceInstallID)
+	serviceEnvVar, err := getServiceEnvVarByName(client, balenaDeviceUUID, name, serviceInstallID)
 	if err != nil {
 		log.Fatalf("Error getting device service env var: %v", err)
 	}
@@ -330,7 +317,7 @@ func testUpdateDeviceServiceEnvVar(client gobalena.CloudClient, balenaDeviceUUID
 	}
 
 	log.Printf("Confirming device service env var updated: %s", name)
-	serviceEnvVar, err = getServiceEnvVarByName(client, balenaDeviceUUID, balenaDeviceID, name, serviceInstallID)
+	serviceEnvVar, err = getServiceEnvVarByName(client, balenaDeviceUUID, name, serviceInstallID)
 	if err != nil {
 		log.Fatalf("Error getting device service env var: %v", err)
 	}
