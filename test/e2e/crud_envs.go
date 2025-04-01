@@ -1,13 +1,21 @@
 // To run this test:
 //
 // ```bash
-// doppler setup
-// # Choose "local" config, "device-manager" project.
+// # Note: if you have doppler, you can select the device-manager/local config,
+// # and it should have some of these variables set for you.
 //
+// # Adjust the following environment variables to your own values.
+// export BALENA_API_URL=https://api.balena-cloud.com/
+// # You can generate an API key from the Balena Cloud dashboard, by going to
+// # your personal settings and generating an access token.
+// export BALENA_API_KEY=<your-api-key>
+// # You will need a device to run this test.
 // export BALENA_DEVICE_UUID=<your-device-uuid>
 // export TEST_ENV_VAR_NAME=SOME_ENV_VAR_NAME
+// # You will need to pick an existing service on the device.
 // export EXISTING_SERVICE_NAME=postgres-service
-// doppler run  -- go run test/e2e/crud_envs.go
+// go run test/e2e/crud_envs.go
+//
 // ```
 
 //go:build e2e
