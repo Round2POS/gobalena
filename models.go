@@ -53,8 +53,8 @@ type DeviceState struct {
 }
 
 type serializableResponse interface {
-	Device | DeviceTag | Fleet |
-		DeviceEnvVar | Release | FleetEnvVar | ServiceEnvVar | DeviceID | DeviceServiceEnvVar
+	Device | DeviceTag | Fleet | DeviceEnvVar | Release | FleetEnvVar |
+		ServiceEnvVar | DeviceID | DeviceServiceEnvVar | ServiceInstallResp
 }
 
 type Response[T serializableResponse] struct {
@@ -251,4 +251,19 @@ type GenericEnvVar struct {
 	FleetValue  string       `json:"fleet_value"`
 	DeviceValue string       `json:"device_value"`
 	Service     ServiceShort `json:"service"`
+}
+
+type ServiceInstallResp struct {
+	ServiceInstallID int `json:"id"`
+	InstallsService  []struct {
+		ServiceID   int    `json:"id"`
+		ServiceName string `json:"service_name"`
+	} `json:"installs__service"`
+}
+
+type DeviceServiceInstall struct {
+	ServiceInstallID int
+	DeviceID         int
+	ServiceID        int
+	ServiceName      string
 }
