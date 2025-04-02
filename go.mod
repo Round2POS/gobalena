@@ -1,4 +1,4 @@
-module github.com/Round2POS/gobalena
+module github.com/Round2POS/gobalena/v2
 
 go 1.21.5
 
