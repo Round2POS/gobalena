@@ -454,8 +454,10 @@ func main() {
 	exitCode := 0
 	for testName, err := range passOrFail {
 		if err != nil {
-			log.Printf("Test failed: %s: %v", testName, err)
+			log.Printf("❌ Test failed: %s: %v", testName, err)
 			exitCode = 1
+		} else {
+			log.Printf("✅ Test passed: %s", testName)
 		}
 	}
 
