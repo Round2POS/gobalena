@@ -44,6 +44,7 @@ type CloudClient interface {
 	CreateDeviceServiceEnvVar(ctx context.Context, balenaDeviceUUID, name string, serviceInstallID int, value string) error
 	GetDeviceServiceEnvVars(ctx context.Context, balenaDeviceUUID string) ([]DeviceServiceEnvVar, error)
 	UpdateDeviceServiceEnvVar(ctx context.Context, balenaDeviceID, envVarID int, value string) error
+	ForceApply(ctx context.Context, balenaDeviceUUID string) error
 	DeleteDeviceServiceEnvVar(ctx context.Context, balenaDeviceID, envVarID int) error
 
 	SetDeviceName(ctx context.Context, balenaDeviceUUID, name string) error
@@ -561,6 +562,29 @@ func (b *cloudClient) UpdateDeviceServiceEnvVar(
 
 	if response.IsError() {
 		return fmt.Errorf("error updating device(%d) service env var(%d): %s", balenaDeviceID, envVarID, response.Body())
+	}
+
+	return nil
+}
+
+func (b *cloudClient) ForceApply(
+	ctx context.Context,
+	balenaDeviceUUID string,
+) error {
+	response, err := b.httpClient.R().
+		SetContext(ctx).
+		SetBody(map[string]interface{}{
+			"uuid":   balenaDeviceUUID,
+			"method": "POST",
+			"body":   map[string]interface{}{"force": true},
+		}).
+		Post("/supervisor/v1/update")
+	if err != nil {
+		return fmt.Errorf("error force updating device(%s): request failed: %w", balenaDeviceUUID, err)
+	}
+
+	if response.IsError() {
+		return fmt.Errorf("error force updating device(%s): request returned error: %s", balenaDeviceUUID, response.Body())
 	}
 
 	return nil
