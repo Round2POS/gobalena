@@ -142,3 +142,8 @@ func (m *mockCloudClient) UpdateDeviceEnvVar(ctx context.Context, balenaDeviceID
 func (m *mockCloudClient) UpdateDeviceServiceEnvVar(ctx context.Context, balenaDeviceID int, envVarID int, value string) error {
 	return nil
 }
+
+// ForceApply implements CloudClient.
+func (m *mockCloudClient) ForceApply(ctx context.Context, balenaDeviceUUID string) error {
+	return nil
+}
