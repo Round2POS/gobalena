@@ -82,6 +82,10 @@ type Device struct {
 	ShouldBeRunningRelease []Release    `json:"should_be_running__release"`
 	BelongsToApplication   []FleetShort `json:"belongs_to__application"`
 	OverallStatus          string       `json:"overall_status"`
+	IsOfDeviceType         []struct {
+		Slug DeviceType `json:"slug"`
+		Name string     `json:"name"`
+	} `json:"is_of__device_type"`
 }
 
 type DeviceID struct {
