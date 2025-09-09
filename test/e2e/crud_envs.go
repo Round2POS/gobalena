@@ -28,7 +28,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/Round2POS/gobalena"
+	"github.com/Round2POS/gobalena/v2"
 )
 
 // Utility function to delete a device env var with a given name, if it exists.
