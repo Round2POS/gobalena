@@ -12,6 +12,8 @@ import (
 )
 
 const (
+	// See <https://docs.balena.io/reference/hardware/devices/>.
+	DeviceTypeAMD64       DeviceType = "generic-amd64"
 	DeviceTypeGeneric     DeviceType = "genericx86-64-ext"
 	DeviceTypeSurfaceGo   DeviceType = "surface-go"
 	DeviceTypeSurfacePro6 DeviceType = "surface-pro-6"
