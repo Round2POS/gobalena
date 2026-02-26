@@ -10,6 +10,7 @@ import (
 
 type LocalClient interface {
 	RestartService(ctx context.Context, serviceName string) error
+	RestartAllServices(ctx context.Context) error
 	StopService(ctx context.Context, serviceName string) error
 	StartService(ctx context.Context, serviceName string) error
 	ServicesStatus(ctx context.Context) (*Status, error)
@@ -65,6 +66,32 @@ func (b *localClient) RestartService(ctx context.Context, serviceName string) er
 
 	if response.IsError() {
 		return fmt.Errorf("error restarting service: %s", response.Body())
+	}
+
+	return nil
+}
+
+func (b *localClient) RestartAllServices(ctx context.Context) error {
+	err := Unlock(BalenaLockFile)
+	if err != nil {
+		return fmt.Errorf("error unlocking lockfile before restarting all services: %w", err)
+	}
+	defer func() {
+		err = Lock(BalenaLockFile)
+		if err != nil {
+			fmt.Println("error creating lockfile after restarting all services")
+		}
+	}()
+
+		response, err := b.httpClient.R().
+		SetContext(ctx).
+		Post("/v2/applications/" + b.appID + "/restart?apikey=" + b.supervisorKey)
+	if err != nil {
+		return fmt.Errorf("failed performing request to restarting all services: %w", err)
+	}
+
+	if response.IsError() {
+		return fmt.Errorf("error restarting all services: %s", response.Body())
 	}
 
 	return nil
