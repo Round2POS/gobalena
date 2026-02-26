@@ -199,14 +199,18 @@ func (b *localClient) RestartAllServices(ctx context.Context, force bool) error 
 	if err != nil {
 		return fmt.Errorf("error unlocking lockfile before restarting all services: %w", err)
 	}
-
-	var data = strings.NewReader(`{"force": "` + strconv.FormatBool(force) + `"}`)
+	defer func() {
+		err = Lock(BalenaLockFile)
+		if err != nil {
+			fmt.Println("error creating lockfile after restarting all services")
+		}
+	}()
+	
 	response, err := b.httpClient.R().
 		SetContext(ctx).
-		SetBody(data).
-		Post("/v1/restart?apikey=" + b.supervisorKey)
+		Post("/v2/applications/" + b.appID + "/restart?apikey=" + b.supervisorKey)
 	if err != nil {
-		return fmt.Errorf("failed performing request for restarting all services: %w", err)
+		return fmt.Errorf("failed performing request to restart all services: %w", err)
 	}
 
 	if response.IsError() {
