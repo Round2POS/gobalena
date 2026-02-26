@@ -29,7 +29,7 @@ func (m *mockLocalClient) RestartService(ctx context.Context, serviceName string
 }
 
 // RestartAllServices implements LocalClient.
-func (m *mockLocalClient) RestartAllServices(ctx context.Context) error {
+func (m *mockLocalClient) RestartAllServices(ctx context.Context, force bool) error {
 	return nil
 }
 
