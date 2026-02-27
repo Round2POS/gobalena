@@ -604,21 +604,19 @@ func (b *cloudClient) RestartAllServices(
 		return ErrInvalidBalenaDeviceUUID
 	}
 
-	// Need the fleet/app ID to hit /v2/applications/:appId/restart
 	dev, err := b.GetDeviceDetails(ctx, balenaDeviceUUID)
 	if err != nil {
 		return fmt.Errorf("failed getting device(%s) details: %w", balenaDeviceUUID, err)
 	}
 
-	// Assumes your Device type includes the expanded belongs_to__application with an ID field,
-	// because DeviceDetailsQuerySelector expands belongs_to__application($select=id,app_name)
-	appID := dev.BelongsToApplication.ID
+	if len(dev.BelongsToApplication) == 0 {
+		return fmt.Errorf("device(%s) has no belongs_to__application returned from API", balenaDeviceUUID)
+	}
+	appID := dev.BelongsToApplication[0].ID
 
 	body := map[string]interface{}{
 		"uuid": balenaDeviceUUID,
 	}
-	// Supervisor API supports optional "force" in body for restart endpoints
-	// When using the cloud proxy, the payload wrapper uses "data" for the proxied request body.
 	if force {
 		body["data"] = map[string]interface{}{"force": true}
 	}
