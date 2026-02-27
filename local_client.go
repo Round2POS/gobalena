@@ -204,7 +204,7 @@ func (b *localClient) RestartAllServices(ctx context.Context, force bool) error 
 	response, err := b.httpClient.R().
 		SetContext(ctx).
 		SetBody(data).
-		Post("/v1/restart?apikey=" + b.supervisorKey)
+		Post("/v2/applications/" + b.appID + "/restart?apikey=" + b.supervisorKey)
 	if err != nil {
 		return fmt.Errorf("failed performing request for restarting all services: %w", err)
 	}
