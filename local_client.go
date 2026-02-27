@@ -15,7 +15,6 @@ type LocalClient interface {
 	ServicesStatus(ctx context.Context) (*Status, error)
 	UpdateRelease(ctx context.Context, force bool) error
 	RebootSystem(ctx context.Context, force bool) error
-	RestartAllServices(ctx context.Context, force bool) error
 	ShutdownSystem(ctx context.Context) error
 	ServicesState(ctx context.Context) (*map[string]interface{}, error)
 	DeviceState(ctx context.Context) (*DeviceState, error)
@@ -189,28 +188,6 @@ func (b *localClient) RebootSystem(ctx context.Context, force bool) error {
 
 	if response.IsError() {
 		return fmt.Errorf("error rebooting system: %s", response.Body())
-	}
-
-	return nil
-}
-
-func (b *localClient) RestartAllServices(ctx context.Context, force bool) error {
-	err := Unlock(BalenaLockFile)
-	if err != nil {
-		return fmt.Errorf("error unlocking lockfile before restarting all services: %w", err)
-	}
-
-	var data = strings.NewReader(`{"force": "` + strconv.FormatBool(force) + `"}`)
-	response, err := b.httpClient.R().
-		SetContext(ctx).
-		SetBody(data).
-		Post("/v2/applications/" + b.appID + "/restart?apikey=" + b.supervisorKey)
-	if err != nil {
-		return fmt.Errorf("failed performing request for restarting all services: %w", err)
-	}
-
-	if response.IsError() {
-		return fmt.Errorf("error restarting all services: %s", response.Body())
 	}
 
 	return nil

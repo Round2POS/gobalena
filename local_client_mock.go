@@ -28,11 +28,6 @@ func (m *mockLocalClient) RestartService(ctx context.Context, serviceName string
 	return nil
 }
 
-// RestartAllServices implements LocalClient.
-func (m *mockLocalClient) RestartAllServices(ctx context.Context, force bool) error {
-	return nil
-}
-
 // ServicesState implements LocalClient.
 func (m *mockLocalClient) ServicesState(ctx context.Context) (*map[string]interface{}, error) {
 	return &map[string]interface{}{}, nil

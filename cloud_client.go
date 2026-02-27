@@ -48,6 +48,8 @@ type CloudClient interface {
 	GetDeviceServiceEnvVars(ctx context.Context, balenaDeviceUUID string) ([]DeviceServiceEnvVar, error)
 	UpdateDeviceServiceEnvVar(ctx context.Context, balenaDeviceID, envVarID int, value string) error
 	ForceApply(ctx context.Context, balenaDeviceUUID string) error
+	RestartAllServices(ctx context.Context, balenaDeviceUUID string, force bool) error
+
 	DeleteDeviceServiceEnvVar(ctx context.Context, balenaDeviceID, envVarID int) error
 
 	SetDeviceName(ctx context.Context, balenaDeviceUUID, name string) error
@@ -592,6 +594,51 @@ func (b *cloudClient) ForceApply(
 
 	return nil
 }
+
+func (b *cloudClient) RestartAllServices(
+	ctx context.Context,
+	balenaDeviceUUID string,
+	force bool,
+) error {
+	if !IsValidBalenaDeviceUUID(balenaDeviceUUID) {
+		return ErrInvalidBalenaDeviceUUID
+	}
+
+	// Need the fleet/app ID to hit /v2/applications/:appId/restart
+	dev, err := b.GetDeviceDetails(ctx, balenaDeviceUUID)
+	if err != nil {
+		return fmt.Errorf("failed getting device(%s) details: %w", balenaDeviceUUID, err)
+	}
+
+	// Assumes your Device type includes the expanded belongs_to__application with an ID field,
+	// because DeviceDetailsQuerySelector expands belongs_to__application($select=id,app_name)
+	appID := dev.BelongsToApplication.ID
+
+	body := map[string]interface{}{
+		"uuid": balenaDeviceUUID,
+	}
+	// Supervisor API supports optional "force" in body for restart endpoints
+	// When using the cloud proxy, the payload wrapper uses "data" for the proxied request body.
+	if force {
+		body["data"] = map[string]interface{}{"force": true}
+	}
+
+	response, err := b.httpClient.R().
+		SetContext(ctx).
+		SetBody(body).
+		Post(fmt.Sprintf("/supervisor/v2/applications/%d/restart", appID))
+	if err != nil {
+		return fmt.Errorf("error restarting all services on device(%s): request failed: %w", balenaDeviceUUID, err)
+	}
+
+	if response.IsError() {
+		return fmt.Errorf("error restarting all services on device(%s): %s", balenaDeviceUUID, response.Body())
+	}
+
+	return nil
+}
+
+
 
 func (b *cloudClient) DeleteDeviceServiceEnvVar(
 	ctx context.Context, balenaDeviceID, envVarID int,
