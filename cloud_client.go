@@ -612,7 +612,9 @@ func (b *cloudClient) RestartAllServices(
 	if len(dev.BelongsToApplication) == 0 {
 		return fmt.Errorf("device(%s) has no belongs_to__application returned from API", balenaDeviceUUID)
 	}
-	appID := dev.BelongsToApplication[0].ID
+
+	// This is the fleet id
+	fleetID := dev.BelongsToApplication[0].ID
 
 	body := map[string]interface{}{
 		"uuid": balenaDeviceUUID,
@@ -624,7 +626,7 @@ func (b *cloudClient) RestartAllServices(
 	response, err := b.httpClient.R().
 		SetContext(ctx).
 		SetBody(body).
-		Post(fmt.Sprintf("/supervisor/v2/applications/%d/restart", appID))
+		Post(fmt.Sprintf("/supervisor/v2/applications/%d/restart", fleetID))
 	if err != nil {
 		return fmt.Errorf("error restarting all services on device(%s): request failed: %w", balenaDeviceUUID, err)
 	}
