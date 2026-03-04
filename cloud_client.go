@@ -33,6 +33,7 @@ type CloudClient interface {
 	GetFleet(ctx context.Context, name string) (*Fleet, error)
 	RegisterDevice(ctx context.Context, balenaDeviceUUID, fleetName string, deviceType DeviceType) error
 	DeleteDevice(ctx context.Context, balenaDeviceUUID string) error
+	Purge(ctx context.Context, balenaDeviceUUID string, force bool) error
 
 	CreateDeviceEnvVar(ctx context.Context, balenaDeviceUUID, key string, value string) error
 	GetDeviceEnvVars(ctx context.Context, balenaDeviceUUID string) ([]DeviceEnvVar, error)
@@ -903,6 +904,49 @@ func (b *cloudClient) PinDeviceToRelease(
 
 	if response.IsError() {
 		return fmt.Errorf("error trying to pin device(%s) to release(%d): %s", balenaDeviceUUID, releaseID, response.Body())
+	}
+
+	return nil
+}
+
+func (b *cloudClient) Purge(
+	ctx context.Context,
+	balenaDeviceUUID string,
+	force bool,
+) error {
+	if !IsValidBalenaDeviceUUID(balenaDeviceUUID) {
+		return ErrInvalidBalenaDeviceUUID
+	}
+
+	dev, err := b.GetDeviceDetails(ctx, balenaDeviceUUID)
+	if err != nil {
+		return fmt.Errorf("failed getting device(%s) details: %w", balenaDeviceUUID, err)
+	}
+
+	if len(dev.BelongsToApplication) == 0 {
+		return fmt.Errorf("device(%s) has no belongs_to__application returned from API", balenaDeviceUUID)
+	}
+
+	// This is the fleet id
+	fleetID := dev.BelongsToApplication[0].ID
+
+	body := map[string]interface{}{
+		"uuid": balenaDeviceUUID,
+	}
+	if force {
+		body["data"] = map[string]interface{}{"force": true}
+	}
+
+	response, err := b.httpClient.R().
+		SetContext(ctx).
+		SetBody(body).
+		Post(fmt.Sprintf("/supervisor/v2/applications/%d/purge", fleetID))
+	if err != nil {
+		return fmt.Errorf("error purging device(%s): request failed: %w", balenaDeviceUUID, err)
+	}
+
+	if response.IsError() {
+		return fmt.Errorf("error purging device(%s): %s", balenaDeviceUUID, response.Body())
 	}
 
 	return nil
