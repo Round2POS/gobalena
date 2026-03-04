@@ -147,3 +147,8 @@ func (m *mockCloudClient) UpdateDeviceServiceEnvVar(ctx context.Context, balenaD
 func (m *mockCloudClient) ForceApply(ctx context.Context, balenaDeviceUUID string) error {
 	return nil
 }
+
+// RestartAllServices implements CloudClient.
+func (m *mockCloudClient) RestartAllServices(ctx context.Context, balenaDeviceUUID string, force bool) error {
+	return nil
+}
