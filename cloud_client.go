@@ -922,7 +922,7 @@ func (b *cloudClient) Purge(
 	}
 
 	if len(dev.BelongsToApplication) == 0 {
-		return fmt.Errorf("error purging device(%s): no belongs_to__application returned from API")
+		return fmt.Errorf("error purging device(%s): no belongs_to__application returned from API", balenaDeviceUUID)
 	}
 
 	// This is the fleet id
