@@ -639,8 +639,6 @@ func (b *cloudClient) RestartAllServices(
 	return nil
 }
 
-
-
 func (b *cloudClient) DeleteDeviceServiceEnvVar(
 	ctx context.Context, balenaDeviceID, envVarID int,
 ) error {
@@ -920,11 +918,11 @@ func (b *cloudClient) Purge(
 
 	dev, err := b.GetDeviceDetails(ctx, balenaDeviceUUID)
 	if err != nil {
-		return fmt.Errorf("failed getting device(%s) details: %w", balenaDeviceUUID, err)
+		return fmt.Errorf("error purging device(%s): failed getting device(%s) details: %w", balenaDeviceUUID, err)
 	}
 
 	if len(dev.BelongsToApplication) == 0 {
-		return fmt.Errorf("device(%s) has no belongs_to__application returned from API", balenaDeviceUUID)
+		return fmt.Errorf("error purging device(%s): no belongs_to__application returned from API")
 	}
 
 	// This is the fleet id
