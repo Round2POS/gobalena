@@ -918,7 +918,7 @@ func (b *cloudClient) Purge(
 
 	dev, err := b.GetDeviceDetails(ctx, balenaDeviceUUID)
 	if err != nil {
-		return fmt.Errorf("error purging device(%s): failed getting device(%s) details: %w", balenaDeviceUUID, err)
+		return fmt.Errorf("error purging device(%s): failed getting device details: %w", balenaDeviceUUID, err)
 	}
 
 	if len(dev.BelongsToApplication) == 0 {
