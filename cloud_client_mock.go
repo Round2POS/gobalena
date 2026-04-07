@@ -152,3 +152,8 @@ func (m *mockCloudClient) ForceApply(ctx context.Context, balenaDeviceUUID strin
 func (m *mockCloudClient) RestartAllServices(ctx context.Context, balenaDeviceUUID string, force bool) error {
 	return nil
 }
+
+// Purge implements CloudClient.
+func (m *mockCloudClient) Purge(ctx context.Context, balenaDeviceUUID string, force bool) error {
+	return nil
+}
