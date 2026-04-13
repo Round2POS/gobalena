@@ -123,6 +123,11 @@ func (m *mockCloudClient) PinDeviceToRelease(ctx context.Context, balenaDeviceUU
 	return nil
 }
 
+// PinMerchantDevicesToRelease implements CloudClient.
+func (m *mockCloudClient) PinMerchantDevicesToRelease(ctx context.Context, balenaDeviceUUIDs []string, releaseID int) error {
+	return nil
+}
+
 // RegisterDevice implements CloudClient.
 func (m *mockCloudClient) RegisterDevice(ctx context.Context, balenaDeviceUUID string, fleetName string, deviceType DeviceType) error {
 	return nil

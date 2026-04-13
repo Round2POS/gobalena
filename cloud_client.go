@@ -60,6 +60,7 @@ type CloudClient interface {
 	HostLogin(token string) error
 	GetFleetReleases(ctx context.Context, name string) ([]Release, error)
 	PinDeviceToRelease(ctx context.Context, balenaDeviceUUID string, releaseID int) error
+	PinMerchantDevicesToRelease(ctx context.Context, balenaDeviceUUIDs []string, releaseID int) error
 }
 
 type cloudClient struct {
@@ -902,6 +903,44 @@ func (b *cloudClient) PinDeviceToRelease(
 
 	if response.IsError() {
 		return fmt.Errorf("error trying to pin device(%s) to release(%d): %s", balenaDeviceUUID, releaseID, response.Body())
+	}
+
+	return nil
+}
+
+func (b *cloudClient) PinMerchantDevicesToRelease(
+	ctx context.Context,
+	balenaDeviceUUIDs []string,
+	releaseID int,
+) error {
+	if len(balenaDeviceUUIDs) == 0 {
+		return fmt.Errorf("no device UUIDs provided")
+	}
+
+	filter := ""
+	for i, uuid := range balenaDeviceUUIDs {
+		if !IsValidBalenaDeviceUUID(uuid) {
+			return ErrInvalidBalenaDeviceUUID
+		}
+
+		filter += "'" + uuid + "'"
+		if i < len(balenaDeviceUUIDs)-1 {
+			filter += ","
+		}
+	}
+
+	response, err := b.httpClient.R().
+		SetContext(ctx).
+		SetBody(map[string]interface{}{
+			"should_be_running__release": strconv.Itoa(releaseID),
+		}).
+		Patch("/v6/device?$filter=uuid%20in(" + filter + ")")
+	if err != nil {
+		return fmt.Errorf("failed performing request to pin devices to release(%d): %w", releaseID, err)
+	}
+
+	if response.IsError() {
+		return fmt.Errorf("error trying to pin devices to release(%d): %s", releaseID, response.Body())
 	}
 
 	return nil
