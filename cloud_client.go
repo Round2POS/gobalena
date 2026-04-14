@@ -917,30 +917,24 @@ func (b *cloudClient) PinMerchantDevicesToRelease(
 		return fmt.Errorf("no device UUIDs provided")
 	}
 
-	filter := ""
-	for i, uuid := range balenaDeviceUUIDs {
+	for _, uuid := range balenaDeviceUUIDs {
 		if !IsValidBalenaDeviceUUID(uuid) {
 			return ErrInvalidBalenaDeviceUUID
 		}
 
-		filter += "'" + uuid + "'"
-		if i < len(balenaDeviceUUIDs)-1 {
-			filter += ","
+		response, err := b.httpClient.R().
+			SetContext(ctx).
+			SetBody(map[string]interface{}{
+				"should_be_running__release": releaseID,
+			}).
+			Patch("/v6/device(uuid='" + uuid + "')")
+		if err != nil {
+			return fmt.Errorf("failed performing request to pin device(%s) to release(%d): %w", uuid, releaseID, err)
 		}
-	}
 
-	response, err := b.httpClient.R().
-		SetContext(ctx).
-		SetBody(map[string]interface{}{
-			"should_be_running__release": strconv.Itoa(releaseID),
-		}).
-		Patch("/v6/device?$filter=uuid%20in(" + filter + ")")
-	if err != nil {
-		return fmt.Errorf("failed performing request to pin devices to release(%d): %w", releaseID, err)
-	}
-
-	if response.IsError() {
-		return fmt.Errorf("error trying to pin devices to release(%d): %s", releaseID, response.Body())
+		if response.IsError() {
+			return fmt.Errorf("error trying to pin device(%s) to release(%d): %s", uuid, releaseID, response.Body())
+		}
 	}
 
 	return nil
