@@ -911,41 +911,6 @@ func (b *cloudClient) PinDeviceToRelease(
 	return nil
 }
 
-func (b *cloudClient) PinMerchantDevicesToRelease(
-	ctx context.Context,
-	balenaDeviceUUIDs []string,
-	releaseID int,
-) error {
-	if releaseID <= 0 {
-		return ErrInvalidReleaseID
-	}
-	if len(balenaDeviceUUIDs) == 0 {
-		return fmt.Errorf("no device UUIDs provided")
-	}
-
-	for _, uuid := range balenaDeviceUUIDs {
-		if !IsValidBalenaDeviceUUID(uuid) {
-			return ErrInvalidBalenaDeviceUUID
-		}
-
-		response, err := b.httpClient.R().
-			SetContext(ctx).
-			SetBody(map[string]interface{}{
-				"should_be_running__release": releaseID,
-			}).
-			Patch("/v6/device(uuid='" + uuid + "')")
-		if err != nil {
-			return fmt.Errorf("failed performing request to pin device(%s) to release(%d): %w", uuid, releaseID, err)
-		}
-
-		if response.IsError() {
-			return fmt.Errorf("error trying to pin device(%s) to release(%d): %s", uuid, releaseID, response.Body())
-		}
-	}
-
-	return nil
-}
-
 func (b *cloudClient) Purge(
 	ctx context.Context,
 	balenaDeviceUUID string,
