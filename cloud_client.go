@@ -60,7 +60,6 @@ type CloudClient interface {
 	HostLogin(token string) error
 	GetFleetReleases(ctx context.Context, name string) ([]Release, error)
 	PinDeviceToRelease(ctx context.Context, balenaDeviceUUID string, releaseID int) error
-	PinMerchantDevicesToRelease(ctx context.Context, balenaDeviceUUIDs []string, releaseID int) error
 }
 
 type cloudClient struct {
