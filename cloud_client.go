@@ -886,6 +886,9 @@ func (b *cloudClient) PinDeviceToRelease(
 	balenaDeviceUUID string,
 	releaseID int,
 ) error {
+	if releaseID <= 0 {
+		return ErrInvalidReleaseID
+	}
 	if !IsValidBalenaDeviceUUID(balenaDeviceUUID) {
 		return ErrInvalidBalenaDeviceUUID
 	}
@@ -893,7 +896,7 @@ func (b *cloudClient) PinDeviceToRelease(
 	response, err := b.httpClient.R().
 		SetContext(ctx).
 		SetBody(map[string]interface{}{
-			"should_be_running__release": strconv.Itoa(releaseID),
+			"should_be_running__release": releaseID,
 		}).
 		Patch("/v6/device(uuid='" + balenaDeviceUUID + "')")
 	if err != nil {
