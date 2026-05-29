@@ -54,7 +54,7 @@ type CloudClient interface {
 	DeleteDeviceServiceEnvVar(ctx context.Context, balenaDeviceID, envVarID int) error
 
 	SetDeviceName(ctx context.Context, balenaDeviceUUID, name string) error
-	DownloadOS(ctx context.Context, writer io.Writer, fleet string, deviceType DeviceType, headerSetter HeaderSetter) (string, error)
+	DownloadOS(ctx context.Context, writer io.Writer, fleet string, deviceType DeviceType, version string, headerSetter HeaderSetter) (string, error)
 	MoveDeviceToFleet(ctx context.Context, balenaDeviceUUID, fleetName string) error
 	EnablePublicDeviceURL(ctx context.Context, balenaDeviceUUID string) error
 	HostLogin(token string) error
@@ -691,7 +691,7 @@ type HeaderSetter interface {
 
 func (b *cloudClient) DownloadOS(
 	ctx context.Context, writer io.Writer, fleet string,
-	deviceType DeviceType, headerSetter HeaderSetter,
+	deviceType DeviceType, version string, headerSetter HeaderSetter,
 ) (string, error) {
 	flt, err := b.GetFleet(ctx, fleet)
 	if err != nil {
@@ -704,7 +704,7 @@ func (b *cloudClient) DownloadOS(
 			"deviceType":      string(deviceType),
 			"appId":           fmt.Sprintf("%d", flt.ID),
 			"fileType":        ".zip",
-			"version":         "latest",
+			"version":         version,
 			"network":         "ethernet",
 			"developmentMode": "false",
 		}).

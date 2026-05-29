@@ -34,7 +34,7 @@ func (m *mockCloudClient) DeleteDevice(ctx context.Context, balenaDeviceUUID str
 }
 
 // DownloadOS implements CloudClient.
-func (m *mockCloudClient) DownloadOS(ctx context.Context, writer io.Writer, fleet string, deviceType DeviceType, headerSetter HeaderSetter) (string, error) {
+func (m *mockCloudClient) DownloadOS(ctx context.Context, writer io.Writer, fleet string, deviceType DeviceType, version string, headerSetter HeaderSetter) (string, error) {
 	return "", nil
 }
 
