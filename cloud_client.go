@@ -573,6 +573,13 @@ func (b *cloudClient) UpdateDeviceServiceEnvVar(
 	return nil
 }
 
+// ForceApply asks the supervisor to apply the device's target state immediately, overriding any
+// update lockfile the device holds.
+//
+// The supervisor proxy reads the payload from "data" and ignores unknown keys without erroring, so
+// nesting "force" under any other key silently downgrades this to a non-forced update that still
+// honours update locks - while the proxy keeps returning 200. Keep this consistent with the "data"
+// key used by RestartAllServices and Purge.
 func (b *cloudClient) ForceApply(
 	ctx context.Context,
 	balenaDeviceUUID string,
@@ -582,7 +589,7 @@ func (b *cloudClient) ForceApply(
 		SetBody(map[string]interface{}{
 			"uuid":   balenaDeviceUUID,
 			"method": "POST",
-			"body":   map[string]interface{}{"force": true},
+			"data":   map[string]interface{}{"force": true},
 		}).
 		Post("/supervisor/v1/update")
 	if err != nil {
