@@ -696,6 +696,30 @@ type HeaderSetter interface {
 	SetHeader(key, value string)
 }
 
+// maxErrorBodyBytes caps how much of a failed download's response reaches the error message.
+// resty's own SetResponseBodyLimit is not enforced when DoNotParseResponse is set, so bound it here.
+const maxErrorBodyBytes = 4096
+
+// errorBodyTruncated marks a message whose body was cut, so a partial body never reads as a whole one.
+const errorBodyTruncated = " (truncated)"
+
+// readErrorBody reads a failed response's body for an error message, and reports whether it was cut.
+//
+// It reads one byte past the cap and returns at most the cap. That extra byte is the only way to
+// tell a body that fits from one that was cut, and it never reaches the caller.
+func readErrorBody(r io.Reader) ([]byte, bool, error) {
+	body, err := io.ReadAll(io.LimitReader(r, maxErrorBodyBytes+1))
+	if err != nil {
+		return nil, false, err
+	}
+
+	if len(body) > maxErrorBodyBytes {
+		return body[:maxErrorBodyBytes], true, nil
+	}
+
+	return body, false, nil
+}
+
 func (b *cloudClient) DownloadOS(
 	ctx context.Context, writer io.Writer, fleet string,
 	deviceType DeviceType, version string, headerSetter HeaderSetter,
@@ -723,7 +747,23 @@ func (b *cloudClient) DownloadOS(
 	defer response.RawResponse.Body.Close()
 
 	if response.IsError() {
-		return "", fmt.Errorf("error downloading os: %s", response.Body())
+		// SetDoNotParseResponse leaves response.Body() empty, so read the raw body instead.
+		body, cut, readErr := readErrorBody(response.RawResponse.Body)
+		if readErr != nil {
+			return "", fmt.Errorf(
+				"error downloading os: status code(%d), reading response body: %w",
+				response.StatusCode(), readErr,
+			)
+		}
+
+		var truncated string
+		if cut {
+			truncated = errorBodyTruncated
+		}
+
+		return "", fmt.Errorf(
+			"error downloading os: status code(%d) %s%s", response.StatusCode(), body, truncated,
+		)
 	}
 
 	var filename string
