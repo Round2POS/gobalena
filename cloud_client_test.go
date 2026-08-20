@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
+	"testing/iotest"
 )
 
 const testDeviceUUID = "2305778e615ed9ac3652699962bf3cf9"
@@ -240,5 +242,75 @@ func TestDownloadOSDoesNotMarkAWholeErrorBody(t *testing.T) {
 
 	if strings.Contains(err.Error(), errorBodyTruncated) {
 		t.Error("a body that fits the cap exactly must not be marked truncated")
+	}
+}
+
+// countingReader reports how many bytes were actually pulled from the source, which is the only way
+// to see the read bound. Every message-level assertion is blind to it: the body is capped for
+// display either way, so a missing io.LimitReader would buffer the whole response unnoticed.
+type countingReader struct {
+	source io.Reader
+	read   int
+}
+
+func (c *countingReader) Read(p []byte) (int, error) {
+	n, err := c.source.Read(p)
+	c.read += n
+
+	return n, err
+}
+
+// TestReadErrorBodyBoundsBothTheReadAndTheResult pins the two halves of the cap separately. The
+// returned body must not exceed maxErrorBodyBytes, so the error message honours the documented
+// limit. The read must not exceed one byte past it, so a pathological response is never buffered
+// whole just to build a message. Only the lookahead byte can tell a cut body from a whole one, so
+// the two bounds differ by exactly one and neither implies the other.
+func TestReadErrorBodyBoundsBothTheReadAndTheResult(t *testing.T) {
+	source := &countingReader{source: strings.NewReader(strings.Repeat("A", maxErrorBodyBytes*25))}
+
+	body, cut, err := readErrorBody(source)
+	if err != nil {
+		t.Fatalf("readErrorBody returned an unexpected error: %v", err)
+	}
+
+	if !cut {
+		t.Error("a body far over the cap must report as cut")
+	}
+
+	if len(body) != maxErrorBodyBytes {
+		t.Errorf("returned body must be capped at %d bytes, got %d", maxErrorBodyBytes, len(body))
+	}
+
+	if source.read > maxErrorBodyBytes+1 {
+		t.Errorf("read %d bytes; must stop one byte past the cap, at %d", source.read, maxErrorBodyBytes+1)
+	}
+}
+
+// TestReadErrorBodyKeepsABodyThatFits is the boundary case. A body of exactly the cap is whole, not
+// cut, and must come back untouched - otherwise the truncation marker fires on complete responses.
+func TestReadErrorBodyKeepsABodyThatFits(t *testing.T) {
+	whole := strings.Repeat("A", maxErrorBodyBytes)
+
+	body, cut, err := readErrorBody(strings.NewReader(whole))
+	if err != nil {
+		t.Fatalf("readErrorBody returned an unexpected error: %v", err)
+	}
+
+	if cut {
+		t.Error("a body of exactly the cap must not report as cut")
+	}
+
+	if string(body) != whole {
+		t.Errorf("expected the body returned whole, got %d of %d bytes", len(body), len(whole))
+	}
+}
+
+// TestReadErrorBodyReportsAFailedRead covers the path where the body dies mid-read, which must
+// surface rather than pass an empty body off as the response.
+func TestReadErrorBodyReportsAFailedRead(t *testing.T) {
+	_, _, err := readErrorBody(iotest.ErrReader(errors.New("connection reset")))
+
+	if err == nil {
+		t.Fatal("expected the read error to surface, got nil")
 	}
 }
